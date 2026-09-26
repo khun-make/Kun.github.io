@@ -4,137 +4,491 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Steal An Egg 3D</title>
+<title>Steal An Egg 3D — Multiplayer</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0a18;color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a18;color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
 #app{position:fixed;inset:0}
 canvas{display:block}
-#hud{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));background:rgba(0,0,0,.7);backdrop-filter:blur(10px);padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.6;border:1px solid rgba(255,255,255,.12);min-width:160px;z-index:80}
+
+/* ============ HUD ============ */
+#hud{
+  position:absolute;
+  top:calc(8px + env(safe-area-inset-top));
+  left:calc(8px + env(safe-area-inset-left));
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:10px 14px;border-radius:14px;
+  font-size:clamp(11px,2.4vw,14px);line-height:1.7;
+  border:1px solid rgba(255,255,255,.15);
+  min-width:clamp(140px,32vw,190px);
+  z-index:80;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
 #hud b{color:#ffd93d}
 #hud .row{display:flex;justify-content:space-between;gap:10px}
 #hud #timer{color:#4dff88;font-weight:bold}
 #hud #timer.urgent{color:#ff6b6b;animation:pulse .6s infinite}
 @keyframes pulse{50%{opacity:.5}}
-#board{position:absolute;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));background:rgba(0,0,0,.7);backdrop-filter:blur(10px);padding:8px 10px;border-radius:12px;font-size:11px;min-width:150px;border:1px solid rgba(255,255,255,.12);z-index:80}
-#board h3{font-size:11px;color:#6bcB77;margin-bottom:4px}
-.lb-row{display:flex;justify-content:space-between;gap:6px;margin:2px 0}
+
+#board{
+  position:absolute;
+  top:calc(8px + env(safe-area-inset-top));
+  right:calc(8px + env(safe-area-inset-right));
+  background:rgba(0,0,0,.78);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  padding:10px 12px;border-radius:14px;
+  font-size:clamp(10px,2.2vw,13px);
+  min-width:clamp(140px,30vw,190px);
+  border:1px solid rgba(255,255,255,.15);
+  z-index:80;
+  max-height:44vh;overflow-y:auto;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);
+}
+#board h3{font-size:clamp(10px,2vw,12px);color:#6bcB77;margin-bottom:6px}
+.lb-row{display:flex;justify-content:space-between;gap:6px;margin:3px 0;padding:2px 0}
 .lb-me{color:#4d96ff;font-weight:bold}
-#msg{position:absolute;top:24%;left:50%;transform:translateX(-50%);font-size:clamp(18px,3.6vw,28px);font-weight:bold;text-shadow:0 3px 16px #000;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;padding:0 12px;max-width:92vw;z-index:75}
+.lb-live{color:#6bcB77}
+
+/* ============ TEXT OVERLAYS ============ */
+#msg{
+  position:absolute;top:24%;left:50%;transform:translateX(-50%);
+  font-size:clamp(18px,3.6vw,28px);font-weight:900;
+  text-shadow:0 3px 16px #000;opacity:0;transition:opacity .3s;
+  pointer-events:none;text-align:center;padding:0 12px;
+  max-width:92vw;z-index:75;
+}
 #msg.show{opacity:1}
-#big-count{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:140px;font-weight:bold;text-shadow:0 6px 24px #000;opacity:0;pointer-events:none;z-index:76;color:#ffd93d}
+#big-count{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:clamp(80px,20vw,160px);font-weight:900;
+  text-shadow:0 6px 24px #000;opacity:0;pointer-events:none;
+  z-index:76;color:#ffd93d;
+}
 #big-count.show{animation:bigpulse .9s ease-out forwards}
-@keyframes bigpulse{0%{transform:translate(-50%,-50%) scale(1.6);opacity:1}60%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(.9);opacity:0}}
-#biomePop{position:absolute;top:38%;left:50%;transform:translateX(-50%);font-size:clamp(22px,5vw,42px);font-weight:bold;text-shadow:0 4px 20px #000;opacity:0;pointer-events:none;z-index:74;transition:opacity .4s}
+@keyframes bigpulse{
+  0%{transform:translate(-50%,-50%) scale(1.6);opacity:1}
+  60%{transform:translate(-50%,-50%) scale(1);opacity:1}
+  100%{transform:translate(-50%,-50%) scale(.9);opacity:0}
+}
+#biomePop{
+  position:absolute;top:38%;left:50%;transform:translateX(-50%);
+  font-size:clamp(22px,5vw,42px);font-weight:900;
+  text-shadow:0 4px 20px #000;opacity:0;
+  pointer-events:none;z-index:74;transition:opacity .4s;
+}
 #biomePop.show{opacity:1}
-#dirIndicator{position:absolute;top:52%;left:50%;transform:translateX(-50%);width:90px;height:90px;display:none;align-items:center;justify-content:center;pointer-events:none;z-index:74}
+#dirIndicator{
+  position:absolute;top:52%;left:50%;transform:translateX(-50%);
+  width:90px;height:90px;display:none;align-items:center;justify-content:center;
+  pointer-events:none;z-index:74;
+}
 #dirIndicator .dir-arrow{font-size:56px;text-shadow:0 0 20px #ffd93d;transition:transform .1s linear}
-#eventLog{position:absolute;bottom:calc(150px + env(safe-area-inset-bottom));left:calc(8px + env(safe-area-inset-left));font-size:11px;line-height:1.5;max-width:230px;pointer-events:none;z-index:79;text-shadow:0 2px 6px #000}
+#eventLog{
+  position:absolute;bottom:calc(200px + env(safe-area-inset-bottom));
+  left:calc(8px + env(safe-area-inset-left));
+  font-size:clamp(10px,2.2vw,12px);line-height:1.5;
+  max-width:clamp(180px,42vw,240px);
+  pointer-events:none;z-index:79;text-shadow:0 2px 6px #000;
+}
 #eventLog div{margin:2px 0;font-weight:bold}
-#top-btns{position:absolute;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:80}
-.mini-btn{width:42px;height:42px;border-radius:11px;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;touch-action:manipulation;cursor:pointer}
-.mini-btn:active{transform:scale(.93)}
-#joystick{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));left:calc(20px + env(safe-area-inset-left));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.2);touch-action:none;z-index:90}
-#stick{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:rgba(77,150,255,.85);box-shadow:0 0 20px rgba(77,150,255,.6);pointer-events:none}
-#actions{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));right:calc(20px + env(safe-area-inset-right));display:flex;flex-direction:column;gap:10px;align-items:flex-end;z-index:90}
-.btn{width:74px;height:74px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.25);color:#fff;font-size:10px;font-weight:bold;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation;cursor:pointer;backdrop-filter:blur(8px)}
-.btn .ico{font-size:22px;line-height:1;margin-bottom:2px}
-.btn:active{transform:scale(.94)}
-.btn.interact{background:rgba(107,203,119,.3);border-color:rgba(107,203,119,.8)}
-.btn.dash{background:rgba(255,159,67,.3);border-color:rgba(255,159,67,.8)}
-.btn.bat{background:rgba(255,107,107,.3);border-color:rgba(255,107,107,.8)}
-#treadmillUI{position:absolute;bottom:0;left:0;right:0;height:36%;background:linear-gradient(to top,rgba(0,0,0,.95),rgba(0,0,0,.7),transparent);display:none;flex-direction:column;justify-content:flex-end;padding:14px;z-index:50;pointer-events:none}
+
+/* ============ NAME TAGS (for remote players) ============ */
+#nametags{position:absolute;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+.nametag{
+  position:absolute;
+  background:rgba(0,0,0,.82);
+  color:#fff;
+  padding:4px 12px;
+  border-radius:10px;
+  font-size:clamp(11px,2.6vw,15px);
+  font-weight:900;
+  white-space:nowrap;
+  transform:translate(-50%,-100%);
+  text-shadow:0 2px 4px rgba(0,0,0,.9);
+  pointer-events:none;
+  border:2px solid rgba(77,150,255,.7);
+  box-shadow:0 4px 14px rgba(0,0,0,.6);
+  letter-spacing:.5px;
+  display:none;
+  transition:opacity .2s;
+}
+.nametag.host{border-color:rgba(255,217,61,.9);color:#ffd93d}
+.nametag::after{
+  content:'';position:absolute;
+  bottom:-8px;left:50%;transform:translateX(-50%);
+  border:6px solid transparent;border-top-color:rgba(77,150,255,.7);
+}
+.nametag.host::after{border-top-color:rgba(255,217,61,.9)}
+
+/* ============ TOP BUTTONS ============ */
+#top-btns{
+  position:absolute;
+  top:calc(8px + env(safe-area-inset-top));
+  left:50%;transform:translateX(-50%);
+  display:flex;gap:8px;z-index:80;
+}
+.mini-btn{
+  width:clamp(46px,11vw,56px);
+  height:clamp(46px,11vw,56px);
+  border-radius:14px;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:2px solid rgba(255,255,255,.2);
+  color:#fff;
+  font-size:clamp(20px,4.5vw,26px);
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
+.mini-btn:active{transform:scale(.92);background:rgba(255,255,255,.15)}
+
+/* ============ JOYSTICK ============ */
+#joystick{
+  position:absolute;
+  bottom:calc(24px + env(safe-area-inset-bottom));
+  left:calc(20px + env(safe-area-inset-left));
+  width:clamp(150px,34vw,220px);
+  height:clamp(150px,34vw,220px);
+  border-radius:50%;
+  background:rgba(255,255,255,.12);
+  border:3px solid rgba(255,255,255,.3);
+  touch-action:none;z-index:90;
+  box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 0 30px rgba(255,255,255,.05);
+}
+#stick{
+  position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  width:clamp(70px,15vw,100px);
+  height:clamp(70px,15vw,100px);
+  border-radius:50%;
+  background:linear-gradient(135deg,rgba(77,150,255,.95),rgba(107,91,255,.95));
+  box-shadow:0 0 30px rgba(77,150,255,.8);
+  pointer-events:none;
+  border:3px solid rgba(255,255,255,.5);
+}
+
+/* ============ ACTION BUTTONS ============ */
+#actions{
+  position:absolute;
+  bottom:calc(24px + env(safe-area-inset-bottom));
+  right:calc(20px + env(safe-area-inset-right));
+  display:flex;flex-direction:column;
+  gap:clamp(12px,2.5vw,20px);
+  align-items:flex-end;z-index:90;
+}
+.btn{
+  width:clamp(92px,22vw,130px);
+  height:clamp(92px,22vw,130px);
+  border-radius:50%;
+  background:rgba(255,255,255,.18);
+  border:3px solid rgba(255,255,255,.4);
+  color:#fff;
+  font-size:clamp(11px,2.4vw,15px);
+  font-weight:900;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  touch-action:manipulation;cursor:pointer;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+  text-shadow:0 2px 4px rgba(0,0,0,.6);
+  user-select:none;-webkit-user-select:none;
+}
+.btn .ico{
+  font-size:clamp(32px,7vw,50px);
+  line-height:1;margin-bottom:clamp(2px,.5vw,5px);
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));
+}
+.btn:active{transform:scale(.9);background:rgba(255,255,255,.3)}
+.btn.bat{background:rgba(255,107,107,.4);border-color:rgba(255,107,107,.9)}
+.btn.interact{background:rgba(107,203,119,.4);border-color:rgba(107,203,119,.9)}
+.btn.dash{background:rgba(255,159,67,.4);border-color:rgba(255,159,67,.9)}
+
+/* ============ ROOM INFO ============ */
+#roomInfo{
+  position:absolute;
+  bottom:calc(8px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.78);
+  padding:6px 14px;border-radius:12px;
+  font-size:clamp(10px,2.2vw,12px);
+  color:#aaa;z-index:79;
+  display:none;align-items:center;gap:8px;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
+#roomInfo.show{display:flex}
+#roomInfo b{color:#ffd93d;letter-spacing:3px;font-family:monospace}
+#roomInfo button{
+  background:rgba(255,255,255,.1);border:none;color:#fff;
+  padding:5px 12px;border-radius:8px;font-size:inherit;cursor:pointer;
+  border:1px solid rgba(255,255,255,.15);
+}
+#roomInfo button:active{transform:scale(.95)}
+
+/* ============ TREADMILL UI ============ */
+#treadmillUI{
+  position:absolute;bottom:0;left:0;right:0;height:38%;
+  background:linear-gradient(to top,rgba(0,0,0,.95),rgba(0,0,0,.7),transparent);
+  display:none;flex-direction:column;justify-content:flex-end;
+  padding:14px;z-index:50;pointer-events:none;
+}
 #treadmillUI.show{display:flex}
-#treadmillUI h3{font-size:13px;color:#ffd93d;margin-bottom:8px;text-align:center}
-#feedContainer{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;pointer-events:auto;max-width:calc(100% - 260px);margin:0 auto}
-.feed-card{min-width:95px;height:120px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;text-align:center;padding:8px;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer}
-.feed-card .emoji{font-size:26px;margin-bottom:4px}
+#treadmillUI h3{
+  font-size:clamp(11px,2.4vw,14px);color:#ffd93d;
+  margin-bottom:8px;text-align:center;
+}
+#feedContainer{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;
+  pointer-events:auto;-webkit-overflow-scrolling:touch;
+  max-width:calc(100% - 320px);margin:0 auto;
+}
+@media (max-width:700px){
+  #feedContainer{max-width:calc(100% - 240px)}
+}
+.feed-card{
+  min-width:clamp(80px,18vw,100px);
+  height:clamp(100px,20vw,130px);
+  border-radius:12px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-size:clamp(9px,2vw,11px);text-align:center;
+  padding:8px;flex-shrink:0;position:relative;
+  overflow:hidden;cursor:pointer;
+}
+.feed-card .emoji{font-size:clamp(22px,5vw,32px);margin-bottom:4px}
 .feed-card.liked::after{content:'❤️';position:absolute;top:6px;right:6px;font-size:16px}
-#treadmillHint{position:absolute;bottom:calc(150px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(107,203,119,.9);color:#fff;padding:8px 16px;border-radius:12px;font-size:13px;font-weight:bold;display:none;z-index:60;pointer-events:none}
+
+#treadmillHint{
+  position:absolute;
+  bottom:calc(200px + env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%);
+  background:rgba(107,203,119,.92);color:#fff;
+  padding:10px 20px;border-radius:14px;
+  font-size:clamp(12px,2.6vw,14px);font-weight:bold;
+  display:none;z-index:60;pointer-events:none;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+}
 #treadmillHint.show{display:block}
-.panel{position:absolute;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+
+/* ============ PANELS ============ */
+.panel{
+  position:absolute;inset:0;background:rgba(0,0,0,.8);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  display:none;align-items:center;justify-content:center;
+  z-index:100;padding:20px;
+}
 .panel.show{display:flex}
-.panel-inner{background:#1a1a2e;border-radius:20px;padding:20px;max-width:440px;width:100%;max-height:82vh;overflow-y:auto;border:1px solid rgba(255,255,255,.15)}
-.panel h2{font-size:20px;margin-bottom:12px;color:#ffd93d;text-align:center}
-.panel p{font-size:13px;color:#aaa;margin-bottom:10px;line-height:1.6}
-.panel .big-stat{text-align:center;font-size:28px;font-weight:bold;color:#ffd93d;margin:12px 0}
-.panel button{width:100%;padding:13px;margin-top:7px;border-radius:11px;border:none;font-size:15px;font-weight:bold;cursor:pointer;background:#4d96ff;color:#fff;touch-action:manipulation}
+.panel-inner{
+  background:#1a1a2e;border-radius:20px;
+  padding:clamp(18px,4vw,26px);
+  max-width:460px;width:100%;
+  max-height:86vh;overflow-y:auto;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.panel h2{
+  font-size:clamp(18px,4vw,22px);margin-bottom:14px;
+  color:#ffd93d;text-align:center;
+}
+.panel p{font-size:clamp(12px,2.6vw,14px);color:#aaa;margin-bottom:10px;line-height:1.6}
+.panel .big-stat{
+  text-align:center;font-size:clamp(24px,6vw,32px);
+  font-weight:900;color:#ffd93d;margin:12px 0;
+}
+.panel button{
+  width:100%;padding:clamp(12px,3vw,16px);
+  margin-top:8px;border-radius:12px;border:none;
+  font-size:clamp(14px,3vw,16px);font-weight:bold;
+  cursor:pointer;background:#4d96ff;color:#fff;
+  touch-action:manipulation;transition:transform .1s;
+}
 .panel button:active{transform:scale(.97)}
 .panel button:disabled{opacity:.4}
 .panel button.danger{background:#ff6b6b}
 .panel button.ghost{background:rgba(255,255,255,.1)}
-.upgrade-row{display:flex;justify-content:space-between;align-items:center;padding:9px;background:rgba(255,255,255,.05);border-radius:9px;margin:5px 0}
+.upgrade-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px;background:rgba(255,255,255,.05);
+  border-radius:10px;margin:6px 0;
+}
 .upgrade-row .info{flex:1}
-.upgrade-row .name{font-size:13px;font-weight:bold}
-.upgrade-row .desc{font-size:10px;color:#888;margin-top:2px}
-.upgrade-row button{width:auto;padding:7px 12px;font-size:12px;margin:0 0 0 8px;white-space:nowrap}
-#loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a18;font-size:18px;color:#6bcB77;z-index:200}
-#nametags{position:absolute;inset:0;pointer-events:none;z-index:70}
-.nametag{position:absolute;background:rgba(0,0,0,.65);color:#fff;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:bold;white-space:nowrap;transform:translate(-50%,-100%);text-shadow:0 1px 3px #000;pointer-events:none}
-/* Lobby */
-#lobby{position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e,#0f1020);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px}
-#lobby .inner{background:rgba(0,0,0,.4);backdrop-filter:blur(20px);border-radius:24px;padding:28px;max-width:400px;width:100%;border:1px solid rgba(255,255,255,.15);text-align:center}
-#lobby h1{font-size:36px;background:linear-gradient(135deg,#ffd93d,#ff6bff,#4d96ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;font-weight:900;letter-spacing:1px}
-#lobby .sub{font-size:13px;color:#888;margin-bottom:22px}
-#lobby input{width:100%;padding:14px;margin:8px 0;border-radius:12px;border:2px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:#fff;font-size:20px;font-weight:bold;text-align:center;letter-spacing:6px;text-transform:uppercase;outline:none}
+.upgrade-row .name{font-size:clamp(12px,2.6vw,14px);font-weight:bold}
+.upgrade-row .desc{font-size:clamp(10px,2.2vw,11px);color:#888;margin-top:2px}
+.upgrade-row button{
+  width:auto;padding:8px 14px;font-size:clamp(11px,2.4vw,13px);
+  margin:0 0 0 8px;white-space:nowrap;
+}
+
+#loading{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#0a0a18;font-size:18px;color:#6bcB77;
+  z-index:200;
+}
+
+/* ============ LOBBY ============ */
+#lobby{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,#1a1a2e,#0f1020);
+  display:flex;align-items:center;justify-content:center;
+  z-index:300;padding:20px;
+  overflow-y:auto;
+}
+#lobby .inner{
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-radius:24px;padding:clamp(22px,5vw,32px);
+  max-width:420px;width:100%;
+  border:1px solid rgba(255,255,255,.15);
+  text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+#lobby h1{
+  font-size:clamp(28px,7vw,42px);
+  background:linear-gradient(135deg,#ffd93d,#ff6bff,#4d96ff);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:6px;font-weight:900;letter-spacing:2px;
+}
+#lobby .sub{font-size:clamp(12px,2.6vw,14px);color:#888;margin-bottom:22px}
+#lobby input{
+  width:100%;padding:clamp(12px,3vw,16px);
+  margin:10px 0;border-radius:12px;
+  border:2px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.05);
+  color:#fff;font-size:clamp(18px,5vw,24px);
+  font-weight:bold;text-align:center;
+  letter-spacing:6px;text-transform:uppercase;
+  outline:none;font-family:monospace;
+}
 #lobby input:focus{border-color:#4d96ff}
-#lobby button{width:100%;padding:14px;margin-top:8px;border-radius:12px;border:none;font-size:15px;font-weight:bold;cursor:pointer;color:#fff;touch-action:manipulation;transition:transform .1s}
+#lobby button{
+  width:100%;padding:clamp(13px,3vw,16px);
+  margin-top:10px;border-radius:12px;border:none;
+  font-size:clamp(14px,3.2vw,16px);font-weight:bold;
+  cursor:pointer;color:#fff;touch-action:manipulation;
+  transition:transform .1s;
+}
 #lobby button:active{transform:scale(.97)}
 #lobby button.primary{background:linear-gradient(135deg,#4d96ff,#6b5bff)}
 #lobby button.success{background:linear-gradient(135deg,#6bcB77,#4aa85a)}
 #lobby button.ghost{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15)}
-#lobby .roomCode{font-size:42px;font-weight:900;color:#ffd93d;letter-spacing:8px;margin:16px 0;text-shadow:0 0 20px rgba(255,217,61,.5)}
-#lobby .players{background:rgba(255,255,255,.05);border-radius:12px;padding:12px;margin:14px 0;min-height:60px;max-height:180px;overflow-y:auto;text-align:left}
-#lobby .player-row{display:flex;justify-content:space-between;padding:6px 8px;font-size:13px;border-radius:6px}
+#lobby .roomCode{
+  font-size:clamp(36px,10vw,52px);font-weight:900;
+  color:#ffd93d;letter-spacing:10px;
+  margin:18px 0;text-shadow:0 0 30px rgba(255,217,61,.6);
+  font-family:monospace;
+}
+#lobby .players{
+  background:rgba(255,255,255,.05);
+  border-radius:12px;padding:12px;
+  margin:14px 0;min-height:60px;max-height:200px;
+  overflow-y:auto;text-align:left;
+}
+#lobby .player-row{
+  display:flex;justify-content:space-between;
+  padding:8px 10px;font-size:clamp(12px,2.6vw,14px);
+  border-radius:8px;margin:2px 0;
+}
 #lobby .player-row.host{background:rgba(255,217,61,.15);color:#ffd93d}
 #lobby .player-row.me{background:rgba(77,150,255,.15);color:#4d96ff}
-#lobby .status{font-size:13px;color:#6bcB77;margin-top:10px;min-height:18px}
+#lobby .status{
+  font-size:clamp(11px,2.4vw,13px);color:#6bcB77;
+  margin-top:12px;min-height:20px;
+}
 #lobby .status.err{color:#ff6b6b}
-#lobby .back{position:absolute;top:20px;left:20px;width:44px;height:44px;border-radius:12px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10}
-#lobby .back:active{transform:scale(.93)}
-#roomInfo{position:absolute;bottom:calc(8px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);padding:6px 14px;border-radius:12px;font-size:11px;color:#aaa;z-index:79;display:none;align-items:center;gap:8px}
-#roomInfo.show{display:flex}
-#roomInfo b{color:#ffd93d;letter-spacing:3px}
-#roomInfo button{background:rgba(255,255,255,.1);border:none;color:#fff;padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer}
+#lobby .back{
+  position:absolute;top:20px;left:20px;
+  width:48px;height:48px;border-radius:14px;
+  background:rgba(0,0,0,.6);
+  border:1px solid rgba(255,255,255,.2);
+  color:#fff;font-size:22px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:10;
+}
+#lobby .back:active{transform:scale(.92)}
+
+/* ============ RESPONSIVE ============ */
+/* Landscape phone */
+@media (max-height:500px){
+  #joystick{
+    width:130px;height:130px;
+    bottom:calc(12px + env(safe-area-inset-bottom));
+  }
+  #stick{width:58px;height:58px}
+  .btn{width:82px;height:82px}
+  .btn .ico{font-size:30px}
+  #actions{
+    gap:10px;
+    bottom:calc(12px + env(safe-area-inset-bottom));
+  }
+  #hud{font-size:11px;padding:7px 10px;min-width:120px}
+  #board{font-size:10px;padding:7px 9px;max-height:55vh}
+  #eventLog{
+    font-size:10px;max-width:160px;
+    bottom:calc(90px + env(safe-area-inset-bottom));
+  }
+  #treadmillHint{bottom:calc(110px + env(safe-area-inset-bottom))}
+}
+
+/* Small phone portrait */
+@media (max-width:400px){
+  #joystick{width:140px;height:140px}
+  #stick{width:64px;height:64px}
+  .btn{width:88px;height:88px}
+  .btn .ico{font-size:34px}
+}
+
+/* Large tablet */
+@media (min-width:1000px){
+  #joystick{width:220px;height:220px}
+  #stick{width:100px;height:100px}
+  .btn{width:130px;height:130px}
+  .btn .ico{font-size:50px}
+}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="loading">⏳ กำลังโหลด...</div>
 
-  <!-- LOBBY -->
+  <!-- ============ LOBBY ============ -->
   <div id="lobby">
     <div class="back" id="lobbyBack" style="display:none">←</div>
-    <div class="inner" id="lobbyMain">
+    <div class="inner">
       <h1>STEAL AN EGG</h1>
       <div class="sub">🥚 3D Multiplayer</div>
+
       <div id="lobbyContent">
         <button class="primary" id="btnSolo">🎮 เล่นคนเดียว</button>
         <button class="success" id="btnHost">🌐 สร้างห้อง (Host)</button>
         <button class="ghost" id="btnJoinShow">🔗 เข้าห้อง (Join)</button>
       </div>
+
       <div id="lobbyJoin" style="display:none">
         <input type="text" id="roomInput" placeholder="XXXXX" maxlength="5" autocomplete="off" autocapitalize="characters">
         <button class="primary" id="btnJoin">เชื่อมต่อ</button>
         <button class="ghost" id="btnBackHome">← กลับ</button>
       </div>
+
       <div id="lobbyHosting" style="display:none">
-        <p style="color:#aaa;font-size:12px">ส่งรหัสนี้ให้เพื่อน:</p>
+        <p style="color:#aaa;font-size:13px">ส่งรหัสนี้ให้เพื่อน:</p>
         <div class="roomCode" id="hostCode">-----</div>
         <button class="ghost" id="btnCopyCode">📋 คัดลอกรหัส</button>
-        <div class="players" id="hostPlayers"><div style="color:#888;text-align:center;padding:12px">รอผู้เล่น...</div></div>
-        <button class="success" id="btnStartGame" disabled>▶️ เริ่มเกม (ต้องมี 2+)</button>
+        <div class="players" id="hostPlayers"></div>
+        <button class="success" id="btnStartGame" disabled>▶️ รอผู้เล่น...</button>
         <button class="ghost" id="btnLeaveHost">ยกเลิก</button>
       </div>
+
       <div id="lobbyJoining" style="display:none">
         <p>กำลังเชื่อมต่อ...</p>
         <div class="players" id="joinPlayers"></div>
       </div>
+
       <div class="status" id="lobbyStatus"></div>
     </div>
   </div>
 
-  <!-- GAME -->
+  <!-- ============ GAME ============ -->
   <div id="hud">
     <div class="row"><span>⏱️</span><b id="timer">3:00</b></div>
     <div class="row"><span>💰</span><b id="money">0</b></div>
@@ -158,7 +512,10 @@ canvas{display:block}
     <div class="btn interact" id="btnInteract"><span class="ico">✋</span>เก็บ</div>
     <div class="btn dash" id="btnDash"><span class="ico">⚡</span>พุ่ง</div>
   </div>
-  <div id="treadmillUI"><h3>🏃 วิ่งเพิ่ม Speed (แตะวิดีโอ like ได้โบนัส)</h3><div id="feedContainer"></div></div>
+  <div id="treadmillUI">
+    <h3>🏃 วิ่งเพิ่ม Speed (แตะวิดีโอ like ได้โบนัส)</h3>
+    <div id="feedContainer"></div>
+  </div>
   <div id="treadmillHint">🏃 ยืนบนลู่วิ่งเพื่อเพิ่ม Speed</div>
   <div id="roomInfo">🔗 รหัสห้อง: <b id="roomCodeSmall">-----</b> <button id="btnCopySmall">คัดลอก</button></div>
 
@@ -173,14 +530,27 @@ canvas{display:block}
     <button id="menuClose" class="ghost">ปิด</button>
   </div></div>
   <div class="panel" id="panelRebirth"><div class="panel-inner">
-    <h2>🔄 Rebirth</h2><p>รีเซ็ตเงินและสัตว์เลี้ยง แลกตัวคูณรายได้</p>
+    <h2>🔄 Rebirth</h2>
+    <p>รีเซ็ตเงินและสัตว์เลี้ยง แลกตัวคูณรายได้</p>
     <div class="big-stat" id="rebirthCost">ต้องมี 10,000💰</div>
     <button id="doRebirth">🔄 ยืนยัน</button>
     <button class="ghost" onclick="closeAll()">ยกเลิก</button>
   </div></div>
-  <div class="panel" id="panelUpgrades"><div class="panel-inner"><h2>⚡ อัปเกรดลู่วิ่ง</h2><div id="upgradesList"></div><button class="ghost" onclick="closeAll()">ปิด</button></div></div>
-  <div class="panel" id="panelPets"><div class="panel-inner"><h2>🐾 สัตว์เลี้ยง</h2><div id="petsList"></div><button class="ghost" onclick="closeAll()">ปิด</button></div></div>
-  <div class="panel" id="panelIndex"><div class="panel-inner"><h2>📖 ดัชนีไข่</h2><div id="indexList"></div><button class="ghost" onclick="closeAll()">ปิด</button></div></div>
+  <div class="panel" id="panelUpgrades"><div class="panel-inner">
+    <h2>⚡ อัปเกรดลู่วิ่ง</h2>
+    <div id="upgradesList"></div>
+    <button class="ghost" onclick="closeAll()">ปิด</button>
+  </div></div>
+  <div class="panel" id="panelPets"><div class="panel-inner">
+    <h2>🐾 สัตว์เลี้ยง</h2>
+    <div id="petsList"></div>
+    <button class="ghost" onclick="closeAll()">ปิด</button>
+  </div></div>
+  <div class="panel" id="panelIndex"><div class="panel-inner">
+    <h2>📖 ดัชนีไข่</h2>
+    <div id="indexList"></div>
+    <button class="ghost" onclick="closeAll()">ปิด</button>
+  </div></div>
 </div>
 
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -190,7 +560,7 @@ canvas{display:block}
 <script type="module">
 import * as THREE from 'three';
 
-/* ============ DATA ============ */
+/* ==================== DATA ==================== */
 var BIOMES=[
 {id:'forest',name:'Forest',th:'ป่าดิบ',speedReq:0,ground:0x4c9b4c,accent:0x2d7a2d,x:0,z:0,r:30,animal:'chicken',eggCount:10},
 {id:'lake',name:'Lake',th:'ทะเลสาบ',speedReq:900,ground:0x4a8bd4,accent:0x2a6bb4,x:80,z:-50,r:28,animal:'leviathan',eggCount:8},
@@ -229,8 +599,8 @@ var BASE_POS=new THREE.Vector3(0,0,-80);
 var ROUND_TIME=180;
 var WAIT_TIME=5;
 
-/* ============ SAVE ============ */
-var SAVE_KEY='stealEgg3D_mp_v1';
+/* ==================== SAVE ==================== */
+var SAVE_KEY='stealEgg3D_mp_v2';
 function defaultSave(){return{money:0,speed:0,rebirth:0,treadmillLevel:1,pets:[],invertInput:true,playerName:'Player'+(Math.floor(Math.random()*9000)+1000)};}
 var save=defaultSave();
 function loadSave(){try{var r=localStorage.getItem(SAVE_KEY);if(!r)return;var p=JSON.parse(r);for(var k in p)save[k]=p[k];}catch(e){}}
@@ -238,7 +608,7 @@ function writeSave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));}ca
 setInterval(writeSave,8000);
 window.addEventListener('beforeunload',writeSave);
 
-/* ============ SCENE ============ */
+/* ==================== SCENE ==================== */
 var app=document.getElementById('app');
 var scene=new THREE.Scene();
 scene.background=new THREE.Color(0x87b8e8);
@@ -258,42 +628,52 @@ sun.shadow.camera.left=-MAP_HALF;sun.shadow.camera.right=MAP_HALF;
 sun.shadow.camera.top=MAP_HALF;sun.shadow.camera.bottom=-MAP_HALF;
 scene.add(sun);
 
-/* ground + biomes */
-scene.add(new THREE.Mesh(new THREE.PlaneGeometry(MAP_HALF*2,MAP_HALF*2,4,4),new THREE.MeshLambertMaterial({color:0x4a8b4a})).rotateX(-Math.PI/2));
+// Ground
+var groundMesh=new THREE.Mesh(new THREE.PlaneGeometry(MAP_HALF*2,MAP_HALF*2,4,4),new THREE.MeshLambertMaterial({color:0x4a8b4a}));
+groundMesh.rotation.x=-Math.PI/2;groundMesh.receiveShadow=true;scene.add(groundMesh);
+
+// Biome ground + walls
 var biomeWalls=[];
-(function(){for(var i=0;i<BIOMES.length;i++){var b=BIOMES[i];
-  var p=new THREE.Mesh(new THREE.CircleGeometry(b.r,40),new THREE.MeshLambertMaterial({color:b.ground}));
-  p.rotation.x=-Math.PI/2;p.position.set(b.x,.05,b.z);p.receiveShadow=true;scene.add(p);
+for(var i=0;i<BIOMES.length;i++){
+  var b=BIOMES[i];
+  var patch=new THREE.Mesh(new THREE.CircleGeometry(b.r,40),new THREE.MeshLambertMaterial({color:b.ground}));
+  patch.rotation.x=-Math.PI/2;patch.position.set(b.x,.05,b.z);patch.receiveShadow=true;scene.add(patch);
   var dirToCenter=Math.atan2(-b.z,-b.x),gateAngle=(b.id==='forest')?Math.PI/2:dirToCenter;
-  for(var s=0;s<24;s++){var a=(s/24)*Math.PI*2;
-    if(b.id!=='forest'){var d=a-gateAngle;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;if(Math.abs(d)<.35)continue;}
+  for(var s=0;s<24;s++){
+    var a=(s/24)*Math.PI*2;
+    if(b.id!=='forest'){var df=a-gateAngle;while(df>Math.PI)df-=Math.PI*2;while(df<-Math.PI)df+=Math.PI*2;if(Math.abs(df)<.35)continue;}
     var wx=b.x+Math.cos(a)*b.r,wz=b.z+Math.sin(a)*b.r;
     var seg=new THREE.Mesh(new THREE.BoxGeometry(2.5,4,.5),new THREE.MeshLambertMaterial({color:b.accent}));
     seg.position.set(wx,2,wz);seg.rotation.y=-a;seg.castShadow=true;scene.add(seg);
     biomeWalls.push({x:wx,z:wz});
   }
-  if(b.id!=='forest'){for(var si=-1;si<=1;si+=2){
+  if(b.id!=='forest')for(var si=-1;si<=1;si+=2){
     var px=b.x+Math.cos(gateAngle+si*.4)*b.r,pz=b.z+Math.sin(gateAngle+si*.4)*b.r;
     var post=new THREE.Mesh(new THREE.BoxGeometry(.8,8,.8),new THREE.MeshLambertMaterial({color:0xffd93d,emissive:0x553300}));
     post.position.set(px,4,pz);scene.add(post);
-  }}
-}})();
+  }
+}
 
-/* base */
+// Base + treadmill
 var baseGroup=new THREE.Group();baseGroup.position.copy(BASE_POS);
-baseGroup.add((function(){var m=new THREE.Mesh(new THREE.BoxGeometry(26,.6,22),new THREE.MeshLambertMaterial({color:0x666666}));m.position.y=.3;m.receiveShadow=true;return m;})());
-baseGroup.add((function(){var m=new THREE.Mesh(new THREE.RingGeometry(16,17,40),new THREE.MeshBasicMaterial({color:0x6bcB77,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;m.position.y=.7;return m;})());
+var bf=new THREE.Mesh(new THREE.BoxGeometry(26,.6,22),new THREE.MeshLambertMaterial({color:0x666666}));bf.position.y=.3;bf.receiveShadow=true;baseGroup.add(bf);
+var br=new THREE.Mesh(new THREE.RingGeometry(16,17,40),new THREE.MeshBasicMaterial({color:0x6bcB77,side:THREE.DoubleSide}));br.rotation.x=-Math.PI/2;br.position.y=.7;baseGroup.add(br);
 var treadGrp=new THREE.Group();treadGrp.position.set(-9,0,3);
-treadGrp.add((function(){var m=new THREE.Mesh(new THREE.BoxGeometry(3.5,.4,7),new THREE.MeshLambertMaterial({color:0x222222}));m.position.y=1;return m;})());
-for(var i=0;i<7;i++){var s=new THREE.Mesh(new THREE.BoxGeometry(3.5,.05,.3),new THREE.MeshLambertMaterial({color:(i%2)?0x444444:0x111111}));s.position.set(0,1.21,-3+i);treadGrp.add(s);}
-for(var x of[-1.7,1.7]){for(var z of[-3.3,3.3]){var l=new THREE.Mesh(new THREE.BoxGeometry(.35,1,.35),new THREE.MeshLambertMaterial({color:0x666666}));l.position.set(x,.5,z);treadGrp.add(l);}
-  var r=new THREE.Mesh(new THREE.BoxGeometry(.25,.25,7.5),new THREE.MeshLambertMaterial({color:0xaaaaaa}));r.position.set(x,2.2,0);treadGrp.add(r);}
+var beltM=new THREE.Mesh(new THREE.BoxGeometry(3.5,.4,7),new THREE.MeshLambertMaterial({color:0x222222}));beltM.position.y=1;treadGrp.add(beltM);
+for(var ti=0;ti<7;ti++){var st=new THREE.Mesh(new THREE.BoxGeometry(3.5,.05,.3),new THREE.MeshLambertMaterial({color:(ti%2)?0x444444:0x111111}));st.position.set(0,1.21,-3+ti);treadGrp.add(st);}
+var xs=[-1.7,1.7];
+for(var xi=0;xi<xs.length;xi++){
+  var xx=xs[xi];
+  var zs=[-3.3,3.3];
+  for(var zi=0;zi<zs.length;zi++){var lg=new THREE.Mesh(new THREE.BoxGeometry(.35,1,.35),new THREE.MeshLambertMaterial({color:0x666666}));lg.position.set(xx,.5,zs[zi]);treadGrp.add(lg);}
+  var rl=new THREE.Mesh(new THREE.BoxGeometry(.25,.25,7.5),new THREE.MeshLambertMaterial({color:0xaaaaaa}));rl.position.set(xx,2.2,0);treadGrp.add(rl);
+}
 var scF=new THREE.Mesh(new THREE.BoxGeometry(4.5,3.5,.35),new THREE.MeshLambertMaterial({color:0x1a1a1a}));scF.position.set(0,4.5,-4);treadGrp.add(scF);
 var scP=new THREE.Mesh(new THREE.PlaneGeometry(4,3),new THREE.MeshBasicMaterial({color:0x221144}));scP.position.set(0,4.5,-3.8);treadGrp.add(scP);
 baseGroup.add(treadGrp);scene.add(baseGroup);
 var TREADMILL_POS=new THREE.Vector3(BASE_POS.x-9,1,BASE_POS.z+3);
 
-/* character */
+/* ==================== CHARACTER ==================== */
 function makeChar(shirtColor,pantsColor,skinTone){
   var g=new THREE.Group();
   var sM=new THREE.MeshLambertMaterial({color:skinTone||0xffcc99});
@@ -315,10 +695,10 @@ function makeChar(shirtColor,pantsColor,skinTone){
   return g;
 }
 
-/* voxel helper */
+/* ==================== VOXEL HELPER ==================== */
 function vox(w,h,d,x,y,z,c,o){o=o||{};var m;if(o.emissive)m=new THREE.MeshLambertMaterial({color:c,emissive:c,emissiveIntensity:o.emi||.8});else m=new THREE.MeshLambertMaterial({color:c});var mx=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mx.position.set(x,y,z);mx.castShadow=true;if(o.rotX)mx.rotation.x=o.rotX;if(o.rotZ)mx.rotation.z=o.rotZ;return mx;}
 
-/* guardian animals — blocky style */
+/* ==================== ANIMALS ==================== */
 function makeAnimal(type){
   var g=new THREE.Group();
   if(type==='chicken'){
@@ -333,15 +713,14 @@ function makeAnimal(type){
     g.add(vox(.5,1.6,.5,-.7,.8,.4,0xffaa22));g.add(vox(.5,1.6,.5,.7,.8,.4,0xffaa22));
     g.add(vox(.9,.3,1.2,-.7,.15,.7,0xffaa22));g.add(vox(.9,.3,1.2,.7,.15,.7,0xffaa22));
   } else if(type==='leviathan'){
-    for(var li=0;li<6;li++){var r=2.2-li*.15;g.add(vox(r*2,r*2,r*2.5,Math.sin(li*.6)*.8,2.5+Math.sin(li)*.4,-li*2.2,0x1a3a5a));}
+    for(var li=0;li<6;li++){var rr=2.2-li*.15;g.add(vox(rr*2,rr*2,rr*2.5,Math.sin(li*.6)*.8,2.5+Math.sin(li)*.4,-li*2.2,0x1a3a5a));}
     g.add(vox(3.5,3,3,0,5,3.5,0x0a2a4a));g.add(vox(3.2,1.2,3,0,3.5,4,0x081a2a));
-    for(var ti=-1;ti<=1;ti++){g.add(vox(.4,.7,.4,ti*1.1,4.2,5,0xffffff));g.add(vox(.4,.7,.4,ti*1.1,3.5,5,0xffffff));}
+    g.add(vox(.4,.7,.4,-1.1,4.2,5,0xffffff));g.add(vox(.4,.7,.4,0,4.2,5,0xffffff));g.add(vox(.4,.7,.4,1.1,4.2,5,0xffffff));
     g.add(vox(.6,.6,.4,-1,5.5,5,0x00ffff,{emissive:true,emi:1}));g.add(vox(.6,.6,.4,1,5.5,5,0x00ffff,{emissive:true,emi:1}));
     for(var fi=0;fi<5;fi++)g.add(vox(.3,2,1.5,0,4.5+Math.sin(fi)*.3,-fi*2.2,0x2a5a8a,{rotX:-.3}));
     g.add(vox(.5,4,3,0,3,-14,0x1a3a5a,{rotX:-.5}));
   } else if(type==='scorpion'){
     g.add(vox(3.5,2,4,0,1.5,0,0xc8a060));g.add(vox(3,1.8,2.5,0,1.4,2.7,0xd4b078));g.add(vox(2.6,1.6,2.2,0,1.3,-2.5,0xc8a060));
-    g.add(vox(3.6,.4,1,0,2.6,0,0xa07838));g.add(vox(3.6,.4,1,0,2.6,1.8,0xa07838));
     for(var si2=0;si2<7;si2++){var sz=.9-si2*.07;g.add(vox(sz,sz,sz,0,1.5+si2*.6,-3.5-si2*.2,0xb89050));}
     g.add(vox(.8,1,.8,0,5.8,-4.8,0xff2200,{emissive:true,emi:1}));
     g.add(vox(2,1.4,2,-2.5,1.3,2.8,0xb89050));g.add(vox(2,1.4,2,2.5,1.3,2.8,0xb89050));
@@ -370,7 +749,6 @@ function makeAnimal(type){
     g.add(vox(1.4,.5,.2,0,5.8,2.1,0x330000));
     for(var yti=-1;yti<=1;yti++)g.add(vox(.3,.4,.15,yti*.5,5.6,2.15,0xffffff));
     g.add(vox(1.6,4,1.6,-3,3.5,.2,0xf0faff));g.add(vox(1.6,4,1.6,3,3.5,.2,0xf0faff));
-    g.add(vox(2,1.5,2,-3.2,1.2,.5,0xe0f0fa));g.add(vox(2,1.5,2,3.2,1.2,.5,0xe0f0fa));
   } else if(type==='cerberus'){
     g.add(vox(4.5,3.5,5.5,0,3,0,0x1a0a0a));
     for(var fi2=0;fi2<6;fi2++)g.add(vox(.8,.8,.8,-1.5+fi2*.6,5,-2.5,0x2a1010));
@@ -378,7 +756,6 @@ function makeAnimal(type){
       var hx=hh*1.6;
       g.add(vox(1.8,1.8,2,hx,6,3,0x1a0a0a));g.add(vox(1.2,.9,1.2,hx,5.5,4.5,0x0a0000));
       g.add(vox(.3,.35,.15,hx-.4,6.3,4.15,0xff0000,{emissive:true,emi:1.5}));g.add(vox(.3,.35,.15,hx+.4,6.3,4.15,0xff0000,{emissive:true,emi:1.5}));
-      g.add(vox(.2,.4,.2,hx-.35,5.2,4.9,0xffffff));g.add(vox(.2,.4,.2,hx+.35,5.2,4.9,0xffffff));
       for(var fl=0;fl<4;fl++){g.add(vox(.7,1.5,.7,hx+(fl-1.5)*.3,7.3+fl*.3,3,0xff6600,{emissive:true,emi:1.2}));g.add(vox(.4,1,.4,hx+(fl-1.5)*.3,7.6+fl*.3,3,0xffdd00,{emissive:true,emi:1.5}));}
     }
     for(var fm=0;fm<10;fm++){var a2=(fm/10)*Math.PI*2;g.add(vox(.6,1.2,.6,Math.cos(a2)*2.8,5.5+Math.sin(fm*1.3)*.3,Math.sin(a2)*2.5,0xff4400,{emissive:true,emi:1.2}));}
@@ -402,7 +779,7 @@ function makeAnimal(type){
     for(var spi=0;spi<5;spi++)g.add(vox(.5,1.5-spi*.15,.5,0,6.5-spi*.1,-3+spi*1.3,0x2a5a0a));
     g.add(vox(1.5,4,2,-1.5,2,1.5,0x3a6a1a));g.add(vox(1.5,4,2,1.5,2,1.5,0x3a6a1a));
     g.add(vox(2,.6,2.5,-1.5,.3,2,0x3a6a1a));g.add(vox(2,.6,2.5,1.5,.3,2,0x3a6a1a));
-    for(var tli=0;tli<6;tli++){var sz=2-tli*.25;g.add(vox(sz,sz,sz,0,4-tli*.15,-4-tli*1.5,0x4a7a2a));}
+    for(var tli=0;tli<6;tli++){var sz2=2-tli*.25;g.add(vox(sz2,sz2,sz2,0,4-tli*.15,-4-tli*1.5,0x4a7a2a));}
   } else if(type==='cosmic_boss'){
     g.add(vox(3.5,3,2,0,3.5,0,0x0a0a1a));
     g.add(vox(2,1.5,.3,0,3.5,1.05,0xffffff,{emissive:true,emi:1.5}));
@@ -454,7 +831,7 @@ function makeAnimal(type){
   return g;
 }
 
-/* ============ PLAYER ============ */
+/* ==================== PLAYER ==================== */
 var player=makeChar(0x4d96ff,0x333366);
 player.position.copy(BASE_POS).add(new THREE.Vector3(6,0,6));
 scene.add(player);
@@ -462,7 +839,7 @@ var carriedEgg=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.8,1.3),new THREE.MeshL
 carriedEgg.position.y=5.5;carriedEgg.visible=false;player.add(carriedEgg);
 var playerState={carrying:null,dashActive:0,dashCooldown:0,batCooldown:0,facing:0,onTreadmill:false,walkCycle:0,armSwing:0,ragdoll:0,ragVX:0,ragVY:0,ragVZ:0,ragSpinX:0,ragSpinZ:0,lastBiomeId:null,trailTimer:0};
 
-/* ============ AI (single player only) ============ */
+/* ==================== AI (single player mode only) ==================== */
 var AI_NAMES=['AlexEgg','StealKing','EggMaster','NinjaThief','FastRunner'];
 var AI_COLORS=[0xff6b6b,0xffd93d,0xa855f7,0x22d3ee,0x84cc16];
 var AI_SKINS=[0xffcc99,0xe0b088,0xc89070,0xffd5b0,0xd4a878];
@@ -479,7 +856,7 @@ function spawnAIs(){
   }
 }
 
-/* ============ BIOME ZONES ============ */
+/* ==================== BIOME ZONES ==================== */
 var biomeZones=[];
 function createBiomeZone(b){
   var eggs=[];
@@ -490,87 +867,98 @@ function createBiomeZone(b){
     var ex=b.x+Math.cos(ang)*rad,ez=b.z+Math.sin(ang)*rad;
     var grp=new THREE.Group();grp.position.set(ex,0,ez);
     for(var n=0;n<8;n++){var nA=(n/8)*Math.PI*2;var nb=new THREE.Mesh(new THREE.BoxGeometry(1.2,.4,1.2),new THREE.MeshLambertMaterial({color:0x6b4423}));nb.position.set(Math.cos(nA)*1.5,.3,Math.sin(nA)*1.5);nb.rotation.y=nA;nb.castShadow=true;grp.add(nb);}
-    grp.add((function(){var m=new THREE.Mesh(new THREE.BoxGeometry(2.5,.5,2.5),new THREE.MeshLambertMaterial({color:0x8b6b4a}));m.position.y=.35;return m;})());
+    var nc=new THREE.Mesh(new THREE.BoxGeometry(2.5,.5,2.5),new THREE.MeshLambertMaterial({color:0x8b6b4a}));nc.position.y=.35;nc.castShadow=true;grp.add(nc);
     var pool=PET_DATA[b.id];
     var pet=pool[Math.floor(Math.random()*pool.length)];
     var col=pet.color||0xffffff;
     var em=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.5,1.2),new THREE.MeshLambertMaterial({color:col,emissive:col,emissiveIntensity:.35}));
     em.position.y=1.3;em.castShadow=true;grp.add(em);
-    var top=new THREE.Mesh(new THREE.BoxGeometry(.8,.5,.8),new THREE.MeshLambertMaterial({color:col,emissive:col,emissiveIntensity:.35}));
-    top.position.y=2.3;grp.add(top);
+    var tp=new THREE.Mesh(new THREE.BoxGeometry(.8,.5,.8),new THREE.MeshLambertMaterial({color:col,emissive:col,emissiveIntensity:.35}));
+    tp.position.y=2.3;grp.add(tp);
     scene.add(grp);
-    eggs.push({id:b.id+'_'+i,group:grp,mesh:em,meshTop:top,hasEgg:true,x:ex,z:ez,respawnTimer:0,biome:b});
+    eggs.push({id:b.id+'_'+i,group:grp,mesh:em,meshTop:tp,hasEgg:true,x:ex,z:ez,respawnTimer:0,biome:b});
   }
   var gM=makeAnimal(b.animal);gM.position.set(b.x,0,b.z);scene.add(gM);
   var warn=new THREE.Mesh(new THREE.RingGeometry(4,4.6,32),new THREE.MeshBasicMaterial({color:0xff2222,side:THREE.DoubleSide,transparent:true,opacity:0}));
   warn.rotation.x=-Math.PI/2;warn.position.set(b.x,.15,b.z);scene.add(warn);
-  biomeZones.push({biome:b,guardian:{mesh:gM,biome:b,homeX:b.x,homeZ:b.z,patrolAngle:0,patrolRadius:5,state:'idle',targetAi:null,stunTimer:0,warnRing:warn,idlePhase:Math.random()*Math.PI*2},eggs:eggs});
+  biomeZones.push({biome:b,guardian:{mesh:gM,biome:b,homeX:b.x,homeZ:b.z,patrolAngle:0,patrolRadius:5,state:'idle',targetAi:null,targetPlayerId:null,stunTimer:0,warnRing:warn,idlePhase:Math.random()*Math.PI*2},eggs:eggs});
 }
-function spawnBiomeZones(){
-  for(var i=0;i<biomeZones.length;i++){scene.remove(biomeZones[i].guardian.mesh);scene.remove(biomeZones[i].guardian.warnRing);for(var j=0;j<biomeZones[i].eggs.length;j++)scene.remove(biomeZones[i].eggs[j].group);}
-  biomeZones.length=0;for(var k=0;k<BIOMES.length;k++)createBiomeZone(BIOMES[k]);
+function clearBiomeZones(){
+  for(var i=0;i<biomeZones.length;i++){
+    scene.remove(biomeZones[i].guardian.mesh);
+    scene.remove(biomeZones[i].guardian.warnRing);
+    for(var j=0;j<biomeZones[i].eggs.length;j++)scene.remove(biomeZones[i].eggs[j].group);
+  }
+  biomeZones.length=0;
 }
 
-/* ============ MULTIPLAYER (PeerJS) ============ */
-var mp={mode:'single',peer:null,conns:[],hostConn:null,myId:null,roomCode:null,players:{},sendTimer:0,sendRate:1/12,isHost:false,started:false};
-var REMOTE_COLORS=[0xff6b6b,0xffd93d,0xa855f7,0x22d3ee,0xf472b6,0x84cc16];
+/* ==================== MULTIPLAYER (PeerJS) ==================== */
+var mp={mode:'lobby',peer:null,conns:[],hostConn:null,myId:null,roomCode:null,players:{},isHost:false,started:false,serverFullTimer:0};
 
 function genCode(){var c='ABCDEFGHJKMNPQRSTUVWXYZ23456789';var s='';for(var i=0;i<5;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function setLobbyStatus(s,err){var el=document.getElementById('lobbyStatus');if(!el)return;el.textContent=s;if(err)el.classList.add('err');else el.classList.remove('err');}
 
 function hostGame(){
   mp.mode='host';mp.isHost=true;mp.roomCode=genCode();mp.myId='HOST';
   setLobbyStatus('กำลังสร้างห้อง...');
-  try{mp.peer=new Peer('sae-mp-'+mp.roomCode,{debug:0});}catch(e){setLobbyStatus('สร้างห้องไม่ได้: '+e.message,true);return;}
+  try{mp.peer=new Peer('sae-egg-'+mp.roomCode,{debug:0});}
+  catch(e){setLobbyStatus('สร้างห้องไม่ได้: '+e.message,true);return;}
   mp.peer.on('open',function(){
-    console.log('Host ready:',mp.roomCode);
+    console.log('[HOST] ready:',mp.roomCode);
     document.getElementById('hostCode').textContent=mp.roomCode;
     document.getElementById('lobbyContent').style.display='none';
     document.getElementById('lobbyHosting').style.display='block';
-    setLobbyStatus('✓ ห้องพร้อม');
+    setLobbyStatus('✓ ห้องพร้อม! ส่งรหัสให้เพื่อน');
     updateHostPlayersList();
   });
-  mp.peer.on('error',function(e){console.warn('Peer error',e);setLobbyStatus('ผิดพลาด: '+e.type,true);});
+  mp.peer.on('error',function(e){console.warn('[HOST] error',e);setLobbyStatus('ผิดพลาด: '+e.type,true);});
   mp.peer.on('connection',function(conn){
+    console.log('[HOST] incoming conn from',conn.peer);
     conn.on('open',function(){
+      console.log('[HOST] conn open',conn.peer);
       mp.conns.push(conn);
-      console.log('Player connected:',conn.peer);
     });
-    conn.on('data',function(d){handleMsg(d,conn);});
+    conn.on('data',function(d){handleHostMsg(d,conn);});
     conn.on('close',function(){
+      console.log('[HOST] conn closed',conn.peer);
       var i=mp.conns.indexOf(conn);if(i>=0)mp.conns.splice(i,1);
       var pid=conn.peer;
-      if(mp.players[pid]){scene.remove(mp.players[pid].mesh);var tg=document.getElementById('nt-'+pid);if(tg)tg.remove();delete mp.players[pid];}
+      if(mp.players[pid]){
+        if(mp.players[pid].mesh)scene.remove(mp.players[pid].mesh);
+        var tg=document.getElementById('nt-'+pid);if(tg)tg.remove();
+        delete mp.players[pid];
+      }
       broadcast({t:'leave',id:pid});
-      updateHostPlayersList();updateBoard();
+      updateHostPlayersList();
     });
-    conn.on('error',function(e){console.warn('conn err',e);});
+    conn.on('error',function(e){console.warn('[HOST] conn err',e);});
   });
 }
 
 function joinGame(code){
   mp.mode='client';mp.isHost=false;mp.roomCode=code;
   setLobbyStatus('กำลังเชื่อมต่อกับ '+code+'...');
-  try{mp.peer=new Peer({debug:0});}catch(e){setLobbyStatus('Peer ไม่สามารถเปิดได้',true);return;}
+  try{mp.peer=new Peer({debug:0});}
+  catch(e){setLobbyStatus('Peer ไม่สามารถเปิดได้',true);return;}
   mp.peer.on('open',function(id){
-    mp.myId=id;
-    var conn=mp.peer.connect('sae-mp-'+code,{reliable:true});
+    console.log('[CLIENT] my id',id);mp.myId=id;
+    var conn=mp.peer.connect('sae-egg-'+code,{reliable:true});
     mp.hostConn=conn;
-    var timeout=setTimeout(function(){if(!mp.started){setLobbyStatus('หมดเวลา — ตรวจสอบรหัสห้อง',true);}},8000);
+    var timeout=setTimeout(function(){if(!mp.started){setLobbyStatus('หมดเวลา — ตรวจสอบรหัสห้อง',true);}},10000);
     conn.on('open',function(){
-      clearTimeout(timeout);
-      mp.started=true;
+      console.log('[CLIENT] connected to host');
+      clearTimeout(timeout);mp.started=true;
       setLobbyStatus('✓ เชื่อมต่อแล้ว รอ host เริ่ม');
       document.getElementById('lobbyContent').style.display='none';
       document.getElementById('lobbyJoin').style.display='none';
       document.getElementById('lobbyJoining').style.display='block';
       conn.send({t:'join',id:id,name:save.playerName});
-      // send own join to get into game
     });
-    conn.on('data',function(d){handleMsg(d,null);});
-    conn.on('close',function(){setLobbyStatus('Host ปิดการเชื่อมต่อ',true);});
-    conn.on('error',function(e){setLobbyStatus('ผิดพลาด: '+e.type,true);});
+    conn.on('data',function(d){handleClientMsg(d);});
+    conn.on('close',function(){console.log('[CLIENT] host closed');setLobbyStatus('Host ปิดการเชื่อมต่อ',true);});
+    conn.on('error',function(e){console.warn('[CLIENT] conn err',e);setLobbyStatus('ผิดพลาด: '+e.type,true);});
   });
-  mp.peer.on('error',function(e){setLobbyStatus('ผิดพลาด: '+e.type,true);});
+  mp.peer.on('error',function(e){console.warn('[CLIENT] peer err',e);setLobbyStatus('ผิดพลาด: '+e.type,true);});
 }
 
 function broadcast(msg,exceptConn){
@@ -580,188 +968,256 @@ function broadcast(msg,exceptConn){
 }
 function sendToHost(msg){if(mp.hostConn)try{mp.hostConn.send(msg);}catch(e){}}
 
-function setLobbyStatus(s,err){var el=document.getElementById('lobbyStatus');el.textContent=s;if(err)el.classList.add('err');else el.classList.remove('err');}
-
 function updateHostPlayersList(){
-  var el=document.getElementById('hostPlayers');
+  var el=document.getElementById('hostPlayers');if(!el)return;
   var list='<div class="player-row host">👑 '+save.playerName+' <span>HOST</span></div>';
   var count=1;
   for(var pid in mp.players){
     if(mp.players[pid].name){list+='<div class="player-row">🎮 '+mp.players[pid].name+'</div>';count++;}
   }
   el.innerHTML=list;
-  document.getElementById('btnStartGame').disabled=count<2;
-  document.getElementById('btnStartGame').textContent='▶️ เริ่มเกม ('+count+' คน)';
-}
-
-function handleMsg(d,fromConn){
-  if(!d||!d.t)return;
-  if(mp.isHost){
-    // host receives from clients
-    if(d.t==='join'){
-      mp.players[d.id]={id:d.id,name:d.name,x:BASE_POS.x,z:BASE_POS.z,f:0,c:null,mesh:null,targetX:BASE_POS.x,targetZ:BASE_POS.z,targetY:0,targetF:0,carrying:null,ragdoll:0,ragVX:0,ragVY:0,ragVZ:0,ragSpinX:0,ragSpinZ:0,walkCycle:0,lastSeen:performance.now()};
-      // send full state to the new player
-      var fullState=serializeWorldState();
-      if(fromConn)try{fromConn.send(fullState);}catch(e){}
-      broadcast({t:'newplayer',id:d.id,name:d.name},fromConn);
-      updateHostPlayersList();
-    } else if(d.t==='state'){
-      var p=mp.players[d.id];
-      if(p){
-        p.targetX=d.x;p.targetZ=d.z;p.targetF=d.f;p.carrying=d.c;
-        p.ragdoll=d.r||0;
-        if(d.rr){p.ragVX=d.rr[0];p.ragVY=d.rr[1];p.ragVZ=d.rr[2];p.ragSpinX=d.rr[3];p.ragSpinZ=d.rr[4];}
-        p.lastSeen=performance.now();
-      }
-    } else if(d.t==='action'){
-      // interact / bat request
-      if(d.a==='pick'&&fromConn){
-        // find egg near player pos
-        var p=mp.players[d.id];if(!p)return;
-        var best=null,bestD=4;
-        for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++){
-          var e=biomeZones[i].eggs[j];if(!e.hasEgg)continue;
-          var dd=Math.hypot(p.targetX-e.x,p.targetZ-e.z);
-          if(dd<bestD){bestD=dd;best={egg:e,zone:biomeZones[i]};}
-        }
-        if(best){
-          best.egg.hasEgg=false;best.egg.mesh.visible=false;best.egg.meshTop.visible=false;
-          best.zone.guardian.state='chase_player_id';best.zone.guardian.targetPlayerId=d.id;
-          p.carrying=best.egg.id;
-          var pool=PET_DATA[best.zone.biome.id];var pet=pool[Math.floor(Math.random()*pool.length)];
-          broadcast({t:'eggTaken',eggId:best.egg.id,byPlayer:d.id,biome:best.zone.biome.id,petName:pet.name,petColor:pet.color});
-        }
-      }
-    }
-  } else {
-    // client receives from host
-    if(d.t==='full'){applyFullState(d);}
-    else if(d.t==='world'){applyWorldUpdate(d);}
-    else if(d.t==='newplayer'){
-      if(!mp.players[d.id]&&d.id!==mp.myId){
-        spawnRemotePlayer(d.id,d.name);
-      }
-    }
-    else if(d.t==='leave'){
-      if(mp.players[d.id]){scene.remove(mp.players[d.id].mesh);var tg=document.getElementById('nt-'+d.id);if(tg)tg.remove();delete mp.players[d.id];}
-    }
-    else if(d.t==='start'){startRoundFromHost(d);}
-    else if(d.t==='eggTaken'){
-      // host confirmed egg taken by someone
-      var bz=null,egg=null;
-      for(var i=0;i<biomeZones.length;i++){var b=biomeZones[i];if(b.biome.id===d.biome){bz=b;break;}}
-      if(bz)for(var j=0;j<bz.eggs.length;j++)if(bz.eggs[j].id===d.eggId){egg=bz.eggs[j];break;}
-      if(egg){egg.hasEgg=false;egg.mesh.visible=false;egg.meshTop.visible=false;}
-    }
-    else if(d.t==='score'){save.money=d.money;}
-    else if(d.t==='round'){/* handled in world */}
+  var btn=document.getElementById('btnStartGame');
+  if(btn){
+    btn.disabled=count<2;
+    btn.textContent='▶️ เริ่มเกม ('+count+' คน)';
   }
 }
 
-function spawnRemotePlayer(id,name){
-  if(mp.players[id])return;
-  var idx=Object.keys(mp.players).length%REMOTE_COLORS.length;
-  var m=makeChar(REMOTE_COLORS[idx],0x222244);
-  m.position.set(BASE_POS.x,BASE_POS.z,BASE_POS.y);
+/* ==================== HOST MESSAGE HANDLER ==================== */
+function handleHostMsg(d,fromConn){
+  if(!d||!d.t)return;
+  if(d.t==='join'){
+    console.log('[HOST] player joined',d.id,d.name);
+    // สร้างตัวละครให้ผู้เล่นใหม่ทันที (เพื่อให้เพื่อนคนอื่นเห็น)
+    spawnPlayerAvatar(d.id,d.name);
+    mp.players[d.id].lastSeen=performance.now();
+    // ส่ง full state ให้ผู้เล่นใหม่
+    if(fromConn)try{fromConn.send(serializeWorldState());}catch(e){}
+    // แจ้งผู้เล่นอื่นว่ามีคนใหม่
+    broadcast({t:'newplayer',id:d.id,name:d.name},fromConn);
+    // อัปเดตรายชื่อ
+    updateHostPlayersList();
+  } else if(d.t==='state'){
+    var p=mp.players[d.id];
+    if(p){
+      p.targetX=d.x;p.targetZ=d.z;p.targetF=d.f;p.carrying=d.c;
+      p.ragdoll=d.r||0;
+      if(d.rr){p.ragVX=d.rr[0];p.ragVY=d.rr[1];p.ragVZ=d.rr[2];p.ragSpinX=d.rr[3];p.ragSpinZ=d.rr[4];}
+      p.lastSeen=performance.now();
+    }
+  } else if(d.t==='pick'){
+    // client ขอขโมยไข่
+    var p=mp.players[d.id];if(!p)return;
+    var best=null,bestD=4;
+    for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++){
+      var e=biomeZones[i].eggs[j];if(!e.hasEgg)continue;
+      var dd=Math.hypot(p.targetX-e.x,p.targetZ-e.z);
+      if(dd<bestD){bestD=dd;best={egg:e,zone:biomeZones[i]};}
+    }
+    if(best){
+      best.egg.hasEgg=false;best.egg.mesh.visible=false;best.egg.meshTop.visible=false;
+      best.zone.guardian.state='chase_player_id';best.zone.guardian.targetPlayerId=d.id;
+      p.carrying=best.egg.id;
+      var pool=PET_DATA[best.zone.biome.id];var pet=pool[Math.floor(Math.random()*pool.length)];
+      // แจ้งทุกคน
+      broadcast({t:'eggTaken',eggId:best.egg.id,byPlayer:d.id,biome:best.zone.biome.id,petName:pet.name,petColor:pet.color});
+      // ผู้ที่เก็บได้ ต้องอัปเดต UI ตัวเอง
+      if(fromConn)try{fromConn.send({t:'eggConfirmed',eggId:best.egg.id,biome:best.zone.biome.id,petName:pet.name,petColor:pet.color});}catch(e){}
+    }
+  } else if(d.t==='hatch'){
+    // client กลับฐาน ฟักไข่
+    var p2=mp.players[d.id];
+    if(!p2||!p2.carrying)return;
+    var eggInfo=findEggById(p2.carrying);
+    if(eggInfo){
+      var pool2=PET_DATA[eggInfo.biome.id];
+      var pet2=pool2[Math.floor(Math.random()*pool2.length)];
+      // ส่ง event ให้ทุกคน
+      broadcast({t:'hatched',id:d.id,name:p2.name,petName:pet2.name});
+    }
+    p2.carrying=null;
+    broadcast({t:'eggDropped',id:d.id});
+  }
+}
+
+function findEggById(eggId){
+  for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++){
+    if(biomeZones[i].eggs[j].id===eggId)return {egg:biomeZones[i].eggs[j],biome:biomeZones[i].biome};
+  }
+  return null;
+}
+
+/* ==================== CLIENT MESSAGE HANDLER ==================== */
+function handleClientMsg(d){
+  if(!d||!d.t)return;
+  if(d.t==='full'){applyFullState(d);}
+  else if(d.t==='world'){applyWorldUpdate(d);}
+  else if(d.t==='newplayer'){
+    if(d.id!==mp.myId)spawnPlayerAvatar(d.id,d.name);
+  }
+  else if(d.t==='leave'){
+    removePlayerAvatar(d.id);
+  }
+  else if(d.t==='start'){
+    console.log('[CLIENT] GAME START!');
+    startClientGame(d.time||ROUND_TIME);
+  }
+  else if(d.t==='eggTaken'){
+    var egg=findEggById(d.eggId);
+    if(egg){egg.egg.hasEgg=false;egg.egg.mesh.visible=false;egg.egg.meshTop.visible=false;}
+    if(d.byPlayer!==mp.myId){
+      pushEvent('🥚 '+getPlayerName(d.byPlayer)+' ขโมยไข่!','#ff9f43');
+    }
+  }
+  else if(d.t==='eggConfirmed'){
+    // ยืนยันว่าไข่ที่เราขอ ถูกมอบให้เรา
+    var egg2=findEggById(d.eggId);
+    if(egg2){
+      var pool=PET_DATA[egg2.biome.id];
+      var pet=pool[Math.floor(Math.random()*pool.length)];
+      playerState.carrying={biomeId:egg2.biome.id,petData:pet,eggRef:egg2.egg,zone:{guardian:biomeZones[biomeZones.indexOf(egg2.biome)]?null:null},wobble:0};
+      // reset zone reference
+      for(var i=0;i<biomeZones.length;i++)if(biomeZones[i].biome===egg2.biome){playerState.carrying.zone=biomeZones[i];break;}
+      carriedEgg.material.color.setHex(pet.color||0xffffff);
+      carriedEgg.material.emissive.setHex(pet.color||0x222222);
+      carriedEgg.visible=true;
+      showMsg('🥚 ขโมยไข่จาก '+egg2.biome.name+'!','#ffd93d');
+      pushEvent('🥚 คุณขโมย '+pet.name,'#4d96ff');
+    }
+  }
+  else if(d.t==='hatched'){
+    pushEvent('🎉 '+d.name+' ฟัก '+d.petName,'#6bcB77');
+  }
+  else if(d.t==='eggDropped'){
+    if(d.id!==mp.myId){
+      var p=mp.players[d.id];
+      if(p)p.carrying=null;
+    }
+  }
+}
+
+function getPlayerName(id){
+  if(id==='HOST')return save.playerName;
+  var p=mp.players[id];
+  return p?p.name:'Player';
+}
+
+/* ==================== AVATAR MANAGEMENT ==================== */
+var PLAYER_COLORS=[0xff6b6b,0xffd93d,0xa855f7,0x22d3ee,0xf472b6,0x84cc16,0xff9f43,0x4dd0ff,0xff69b4];
+var colorIdx=0;
+
+function spawnPlayerAvatar(id,name){
+  if(mp.players[id]&&mp.players[id].mesh)return;
+  var color=PLAYER_COLORS[colorIdx++%PLAYER_COLORS.length];
+  var m=makeChar(color,0x222244);
+  m.position.set(BASE_POS.x+(Math.random()-.5)*8,0,BASE_POS.z+(Math.random()-.5)*8);
   scene.add(m);
   var em=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.8,1.3),new THREE.MeshLambertMaterial({color:0xffffff,emissive:0x222222}));
   em.position.y=5.5;em.visible=false;m.add(em);
-  mp.players[id]={id:id,name:name||'Player',mesh:m,carryingEgg:em,x:BASE_POS.x,z:BASE_POS.z,y:0,facing:0,targetX:BASE_POS.x,targetZ:BASE_POS.z,targetF:0,carrying:null,ragdoll:0,ragVX:0,ragVY:0,ragVZ:0,ragSpinX:0,ragSpinZ:0,walkCycle:0,lastSeen:performance.now()};
-  // name tag
-  var tg=document.createElement('div');tg.className='nametag';tg.id='nt-'+id;tg.textContent=name;document.getElementById('nametags').appendChild(tg);
+  mp.players[id]={
+    id:id,name:name||'Player',mesh:m,carryingEgg:em,
+    x:m.position.x,z:m.position.z,y:0,facing:0,
+    targetX:m.position.x,targetZ:m.position.z,targetF:0,
+    carrying:null,ragdoll:0,
+    ragVX:0,ragVY:0,ragVZ:0,ragSpinX:0,ragSpinZ:0,
+    walkCycle:0,lastSeen:performance.now()
+  };
+  // Name tag
+  var tg=document.createElement('div');
+  tg.className='nametag'+(id==='HOST'?' host':'');
+  tg.id='nt-'+id;
+  tg.textContent=(id==='HOST'?'👑 ':'')+name;
+  document.getElementById('nametags').appendChild(tg);
+  console.log('[AVATAR] spawned',id,name,color.toString(16));
 }
 
+function removePlayerAvatar(id){
+  if(mp.players[id]){
+    if(mp.players[id].mesh)scene.remove(mp.players[id].mesh);
+    delete mp.players[id];
+  }
+  var tg=document.getElementById('nt-'+id);
+  if(tg)tg.remove();
+}
+
+/* ==================== SERIALIZE / APPLY STATE ==================== */
 function serializeWorldState(){
-  // full state on join
   var eggs=[];
   for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++)eggs.push(biomeZones[i].eggs[j].hasEgg?1:0);
   var gs=[];
-  for(var k=0;k<biomeZones.length;k++){var g=biomeZones[k].guardian;gs.push([Math.round(g.mesh.position.x*10)/10,Math.round(g.mesh.position.z*10)/10,g.state==='idle'?0:1]);}
+  for(var k=0;k<biomeZones.length;k++){var g=biomeZones[k].guardian;gs.push([Math.round(g.mesh.position.x*10)/10,Math.round(g.mesh.position.z*10)/10,(g.state==='chase_player'||g.state==='chase_ai'||g.state==='chase_player_id')?1:0]);}
   var players=[];
-  for(var pid in mp.players){var p=mp.players[pid];players.push([pid,p.targetX,p.targetZ,p.targetF,p.carrying]);}
+  players.push(['HOST',player.position.x,player.position.z,playerState.facing,playerState.carrying?playerState.carrying.eggRef.id:null,save.playerName,playerState.ragdoll]);
+  for(var pid in mp.players){
+    var p=mp.players[pid];
+    players.push([pid,p.targetX,p.targetZ,p.targetF,p.carrying,p.name,p.ragdoll]);
+  }
   return {t:'full',eggs:eggs,gs:gs,players:players,round:roundState,timer:roundTimer};
 }
 
 function applyFullState(d){
-  // recreate eggs visibility
+  console.log('[CLIENT] applying full state, players:',d.players.length);
   var idx=0;
   for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++){
     var e=biomeZones[i].eggs[j];
-    e.hasEgg=!!d.eggs[idx];
-    e.mesh.visible=e.hasEgg;e.meshTop.visible=e.hasEgg;
+    e.hasEgg=!!d.eggs[idx];e.mesh.visible=e.hasEgg;e.meshTop.visible=e.hasEgg;
     idx++;
   }
   for(var k=0;k<d.gs.length&&k<biomeZones.length;k++){
-    var g=biomeZones[k].guardian;var s=d.gs[k];
+    var g=biomeZones[k].guardian,s=d.gs[k];
     g.mesh.position.set(s[0],0,s[1]);
-    g.state=s[2]?'chase':'idle';
   }
   for(var pi=0;pi<d.players.length;pi++){
     var pp=d.players[pi];
-    if(pp[0]===mp.myId)continue;
-    if(!mp.players[pp[0]])spawnRemotePlayer(pp[0],'Player');
+    if(pp[0]===mp.myId||pp[0]==='HOST'){if(pp[0]==='HOST'&&!mp.players['HOST'])spawnPlayerAvatar('HOST',pp[5]);}
+    if(!mp.players[pp[0]])spawnPlayerAvatar(pp[0],pp[5]);
     var p=mp.players[pp[0]];
-    p.x=p.targetX=pp[1];p.z=p.targetZ=pp[2];p.facing=p.targetF=pp[3];p.carrying=pp[4];
-    p.mesh.position.set(p.x,0,p.z);
-    p.carryingEgg.visible=!!p.carrying;
+    if(!p)continue;
+    p.targetX=pp[1];p.targetZ=pp[2];p.targetF=pp[3];p.carrying=pp[4];
+    p.mesh.position.x=pp[1];p.mesh.position.z=pp[2];
   }
 }
 
 function applyWorldUpdate(d){
-  // host sends 12Hz: positions of all players, eggs bitmap, guardians, round
   if(d.players){
     for(var i=0;i<d.players.length;i++){
       var pp=d.players[i];
       if(pp[0]===mp.myId)continue;
-      if(!mp.players[pp[0]])spawnRemotePlayer(pp[0],pp[5]||'Player');
+      if(!mp.players[pp[0]])spawnPlayerAvatar(pp[0],pp[5]);
       var p=mp.players[pp[0]];
+      if(!p)continue;
       p.targetX=pp[1];p.targetZ=pp[2];p.targetF=pp[3];p.carrying=pp[4];
       if(pp[6]!==undefined)p.ragdoll=pp[6];
+      p.lastSeen=performance.now();
     }
   }
   if(d.eggs){
     var idx=0;
     for(var a=0;a<biomeZones.length;a++)for(var b=0;b<biomeZones[a].eggs.length;b++){
-      var e=biomeZones[a].eggs[b];
-      var nv=!!d.eggs[idx];
+      var e=biomeZones[a].eggs[b],nv=!!d.eggs[idx];
       if(nv!==e.hasEgg){e.hasEgg=nv;e.mesh.visible=nv;e.meshTop.visible=nv;}
       idx++;
     }
   }
   if(d.gs){
     for(var k=0;k<d.gs.length&&k<biomeZones.length;k++){
-      var g=biomeZones[k].guardian;var s=d.gs[k];
-      g.mesh.position.x+=(s[0]-g.mesh.position.x)*.25;
-      g.mesh.position.z+=(s[1]-g.mesh.position.z)*.25;
-      var isChasing=!!s[2];
-      if(isChasing){g.warnRing.material.opacity=.5;g.warnRing.position.x=g.mesh.position.x;g.warnRing.position.z=g.mesh.position.z;}
-      else g.warnRing.material.opacity*=.8;
+      var g=biomeZones[k].guardian,s=d.gs[k];
+      g.mesh.position.x+=(s[0]-g.mesh.position.x)*.3;
+      g.mesh.position.z+=(s[1]-g.mesh.position.z)*.3;
+      if(s[2]){g.warnRing.material.opacity=.5;g.warnRing.position.x=g.mesh.position.x;g.warnRing.position.z=g.mesh.position.z;}
+      else g.warnRing.material.opacity*=.85;
     }
   }
   if(d.timer!==undefined)roundTimer=d.timer;
-  if(d.round!==undefined&&d.round!==roundState){
-    if(d.round==='waiting'){roundState='waiting';}else if(d.round==='playing'){roundState='playing';}
-  }
 }
 
-function startRoundFromHost(d){
-  // host says start
-  document.getElementById('lobby').style.display='none';
-  mp.started=true;
-  roundState='playing';roundTimer=d.time||ROUND_TIME;
-  document.getElementById('roomInfo').classList.add('show');
-  document.getElementById('roomCodeSmall').textContent=mp.roomCode;
-  startGameLoop();
-}
-
-/* ============ HOST BROADCAST ============ */
-var hostBroadcastTimer=0;
+/* ==================== HOST BROADCAST ==================== */
+var hostBroadcastCounter=0;
 function hostBroadcastWorld(){
-  hostBroadcastTimer-=1;
-  if(hostBroadcastTimer>0)return;
-  hostBroadcastTimer=3; // every 3 frames ~ 20Hz/60 = fine
+  hostBroadcastCounter++;
+  if(hostBroadcastCounter<4)return; // ~15Hz
+  hostBroadcastCounter=0;
   var players=[];
-  // include host self
   players.push(['HOST',player.position.x,player.position.z,playerState.facing,playerState.carrying?playerState.carrying.eggRef.id:null,save.playerName,playerState.ragdoll]);
   for(var pid in mp.players){
     var p=mp.players[pid];
@@ -770,36 +1226,42 @@ function hostBroadcastWorld(){
   var eggs=[];
   for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++)eggs.push(biomeZones[i].eggs[j].hasEgg?1:0);
   var gs=[];
-  for(var k=0;k<biomeZones.length;k++){var g=biomeZones[k].guardian;gs.push([Math.round(g.mesh.position.x*10)/10,Math.round(g.mesh.position.z*10)/10,g.state!=='idle'&&g.state!=='return'&&g.state!=='stunned'?1:0]);}
-  broadcast({t:'world',players:players,eggs:eggs,gs:gs,timer:Math.round(roundTimer*10)/10,round:roundState});
+  for(var k=0;k<biomeZones.length;k++){var g=biomeZones[k].guardian;gs.push([Math.round(g.mesh.position.x*10)/10,Math.round(g.mesh.position.z*10)/10,(g.state==='chase_player'||g.state==='chase_ai'||g.state==='chase_player_id')?1:0]);}
+  broadcast({t:'world',players:players,eggs:eggs,gs:gs,timer:Math.round(roundTimer*10)/10});
 }
 
-/* ============ CLIENT SEND STATE ============ */
-var clientSendTimer=0;
+/* ==================== CLIENT SEND STATE ==================== */
+var clientSendCounter=0;
 function clientSendState(){
-  clientSendTimer-=1;
-  if(clientSendTimer>0)return;
-  clientSendTimer=4; // ~15Hz
-  sendToHost({t:'state',id:mp.myId,x:player.position.x,z:player.position.z,f:playerState.facing,c:playerState.carrying?playerState.carrying.eggRef.id:null,r:playerState.ragdoll,rr:playerState.ragdoll>0?[playerState.ragVX,playerState.ragVY,playerState.ragVZ,playerState.ragSpinX,playerState.ragSpinZ]:null});
+  clientSendCounter++;
+  if(clientSendCounter<4)return; // ~15Hz
+  clientSendCounter=0;
+  sendToHost({
+    t:'state',id:mp.myId,
+    x:player.position.x,z:player.position.z,f:playerState.facing,
+    c:playerState.carrying?playerState.carrying.eggRef.id:null,
+    r:playerState.ragdoll,
+    rr:playerState.ragdoll>0?[playerState.ragVX,playerState.ragVY,playerState.ragVZ,playerState.ragSpinX,playerState.ragSpinZ]:null
+  });
 }
 
-/* ============ PARTICLES / UI HELPERS ============ */
+/* ==================== PARTICLES ==================== */
 var particles=[];
 function burst(pos,color,n){n=n||16;for(var i=0;i<n;i++){var m=new THREE.Mesh(new THREE.BoxGeometry(.3,.3,.3),new THREE.MeshBasicMaterial({color:color,transparent:true}));m.position.copy(pos);var a=Math.random()*Math.PI*2,e=Math.random()*Math.PI,sp=4+Math.random()*6;m.userData.v=new THREE.Vector3(Math.cos(a)*Math.sin(e)*sp,Math.abs(Math.cos(e))*sp,Math.sin(a)*Math.sin(e)*sp);m.userData.life=1;scene.add(m);particles.push(m);}}
 function spawnTrail(pos,color){var m=new THREE.Mesh(new THREE.BoxGeometry(.5,.5,.5),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.6}));m.position.copy(pos);m.userData.v=new THREE.Vector3(0,1.5+Math.random(),0);m.userData.life=.7;m.userData.fade=true;scene.add(m);particles.push(m);}
 
+/* ==================== UI HELPERS ==================== */
 var $=id=>document.getElementById(id);
 var msgEl=$('msg'),bigCountEl=$('big-count'),biomePopEl=$('biomePop'),msgTimer=0,biomePopTimer=0;
 function showMsg(t,c){msgEl.textContent=t;msgEl.style.color=c||'#ffd93d';msgEl.classList.add('show');msgTimer=1.6;}
 function showBigCount(n){bigCountEl.textContent=n;bigCountEl.classList.remove('show');void bigCountEl.offsetWidth;bigCountEl.classList.add('show');}
 function showBiomePop(b){biomePopEl.textContent='📍 '+b.name+' ('+b.th+')';biomePopEl.style.color='#'+(b.accent>>>0).toString(16).padStart(6,'0');biomePopEl.classList.add('show');biomePopTimer=1.8;}
 function formatNumber(n){if(n>=1e12)return(n/1e12).toFixed(1)+'T';if(n>=1e9)return(n/1e9).toFixed(1)+'B';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return Math.floor(n).toString();}
-
 var eventLog=[];
 function pushEvent(t,c){eventLog.push({text:t,color:c||'#fff',time:performance.now()});if(eventLog.length>6)eventLog.shift();}
 setInterval(function(){var el=$('eventLog');if(!el)return;var now=performance.now(),html='';for(var i=0;i<eventLog.length;i++){var ev=eventLog[i];var age=(now-ev.time)/1000;var op=Math.max(0,1-age/7);html+='<div style="opacity:'+op+';color:'+ev.color+';">'+ev.text+'</div>';}el.innerHTML=html;},200);
 
-/* ============ ROUND STATE ============ */
+/* ==================== ROUND ==================== */
 var roundState='playing',roundTimer=ROUND_TIME,waitTimer=WAIT_TIME,lastCountShown=-1,screenShake=0;
 
 function updateHUD(){
@@ -812,7 +1274,7 @@ function updateHUD(){
   $('carry').textContent=(playerState.carrying&&playerState.carrying.petData)?playerState.carrying.petData.name:'-';
 }
 
-/* ============ INPUT ============ */
+/* ==================== INPUT ==================== */
 var input={x:0,y:0};
 var joyEl=$('joystick'),stickEl=$('stick'),joyTouchId=null,joyCenter={x:0,y:0};
 function joyStart(e){var t=e.changedTouches?e.changedTouches[0]:e;var r=joyEl.getBoundingClientRect();joyCenter.x=r.left+r.width/2;joyCenter.y=r.top+r.height/2;joyTouchId=(t.identifier!==undefined)?t.identifier:'mouse';joyMove(e);}
@@ -832,7 +1294,7 @@ function tryDash(){if(playerState.dashCooldown>0||playerState.ragdoll>0)return;p
 $('btnDash').addEventListener('touchstart',e=>{e.preventDefault();tryDash();},{passive:false});
 $('btnDash').addEventListener('click',tryDash);
 
-/* ============ RAGDOLL ============ */
+/* ==================== RAGDOLL ==================== */
 function applyRagdoll(target,fromX,fromZ,isPlayer,power){
   power=power||22;
   var tx=isPlayer?player.position.x:target.mesh.position.x,tz=isPlayer?player.position.z:target.mesh.position.z;
@@ -841,11 +1303,11 @@ function applyRagdoll(target,fromX,fromZ,isPlayer,power){
   if(isPlayer){
     playerState.ragdoll=1.8;playerState.ragVX=dirX*power;playerState.ragVZ=dirZ*power;playerState.ragVY=9;
     playerState.ragSpinX=(Math.random()-.5)*15;playerState.ragSpinZ=(Math.random()-.5)*15;
-    if(playerState.carrying){var c=playerState.carrying;if(c.eggRef){c.eggRef.hasEgg=true;c.eggRef.mesh.visible=true;c.eggRef.meshTop.visible=true;}if(c.zone&&c.zone.guardian)c.zone.guardian.state='return';pushEvent('💥 คุณกระเด็น! '+c.petData.name+' หลุด','#ff6b6b');playerState.carrying=null;carriedEgg.visible=false;}
+    if(playerState.carrying){var c=playerState.carrying;if(c.eggRef){c.eggRef.hasEgg=true;c.eggRef.mesh.visible=true;c.eggRef.meshTop.visible=true;}if(c.zone&&c.zone.guardian)c.zone.guardian.state='return';pushEvent('💥 คุณกระเด็น! '+c.petData.name+' หลุด','#ff6b6b');playerState.carrying=null;carriedEgg.visible=false;if(mp.mode==='client'&&mp.myId)sendToHost({t:'hatch',id:mp.myId});}
   } else {
     target.ragdoll=1.8;target.ragVX=dirX*power;target.ragVZ=dirZ*power;target.ragVY=9;
     target.ragSpinX=(Math.random()-.5)*15;target.ragSpinZ=(Math.random()-.5)*15;
-    if(target.carrying){if(target.targetEgg){target.targetEgg.hasEgg=true;target.targetEgg.mesh.visible=true;target.targetEgg.meshTop.visible=true;}target.carrying=null;target.carryingEgg.visible=false;target.state=target.behavior;target.targetEgg=null;target.targetBiome=null;pushEvent('💥 '+target.name+' กระเด็น! ไข่หลุด','#ff9f43');}
+    if(target.carrying){if(target.targetEgg){target.targetEgg.hasEgg=true;target.targetEgg.mesh.visible=true;target.targetEgg.meshTop.visible=true;}target.carrying=null;target.carryingEgg.visible=false;target.state=target.behavior;target.targetEgg=null;target.targetBiome=null;pushEvent('💥 '+target.name+' กระเด็น!','#ff9f43');}
   }
 }
 function updateRagdoll(entity,obj,dt){
@@ -860,58 +1322,59 @@ function updateRagdoll(entity,obj,dt){
   if(entity.ragdoll<=0){entity.ragdoll=0;obj.rotation.x=0;obj.rotation.z=0;obj.position.y=0;entity.ragVX=0;entity.ragVY=0;entity.ragVZ=0;entity.ragSpinX=0;entity.ragSpinZ=0;}
 }
 
-/* ============ INTERACT ============ */
+/* ==================== INTERACT ==================== */
 function interact(){
   if(roundState!=='playing')return;
   if(playerState.carrying||playerState.ragdoll>0)return;
-  var best=null,bestD=4;
+  var best=null,bestD=4.5;
   for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++){
     var e=biomeZones[i].eggs[j];if(!e.hasEgg)continue;
     var d=Math.hypot(player.position.x-e.x,player.position.z-e.z);
     if(d<bestD){bestD=d;best={egg:e,zone:biomeZones[i]};}
   }
   if(!best)return;
-  if(mp.isHost||mp.mode==='single'){
-    // host authoritative
+  if(mp.mode==='client'){
+    // client: ขอ host
+    sendToHost({t:'pick',id:mp.myId});
+    showMsg('⏳ กำลังขโมย...','#ffd93d');
+  } else {
+    // host หรือ solo
     best.egg.hasEgg=false;best.egg.mesh.visible=false;best.egg.meshTop.visible=false;
     var g=best.zone.guardian;g.state='chase_player';g.targetAi=null;
     var pool=PET_DATA[best.zone.biome.id];var pet=pool[Math.floor(Math.random()*pool.length)];
     playerState.carrying={biomeId:best.zone.biome.id,petData:pet,eggRef:best.egg,zone:best.zone,wobble:0};
     carriedEgg.material.color.setHex(pet.color||0xffffff);carriedEgg.material.emissive.setHex(pet.color||0x222222);carriedEgg.visible=true;
     burst(new THREE.Vector3(best.egg.x,1.5,best.egg.z),pet.color||0xffffff,16);
-    if(mp.isHost)broadcast({t:'eggTaken',eggId:best.egg.id,byPlayer:'HOST',biome:best.zone.biome.id,petName:pet.name,petColor:pet.color});
+    if(mp.isHost)broadcast({t:'eggTaken',eggId:best.egg.id,byPlayer:'HOST',biome:best.zone.biome.id});
     showMsg('🥚 ขโมยไข่จาก '+best.zone.biome.name+'!','#ffd93d');
-  } else {
-    // client: request to host
-    sendToHost({t:'action',a:'pick',id:mp.myId});
+    pushEvent('🥚 คุณขโมย '+pet.name,'#4d96ff');
   }
 }
 $('btnInteract').addEventListener('touchstart',e=>{e.preventDefault();interact();},{passive:false});
 $('btnInteract').addEventListener('click',interact);
 
-/* ============ BAT ============ */
+/* ==================== BAT ==================== */
 function useBat(){
   if(roundState!=='playing')return;
   if(playerState.batCooldown>0||playerState.ragdoll>0)return;
   playerState.batCooldown=.8;playerState.armSwing=.3;
-  // hit AI (only in single player)
-  if(mp.mode==='single'){
+  if(mp.mode!=='client'){
     var cl=null,cd=5;
     for(var i=0;i<ais.length;i++){var ai=ais[i];if(ai.ragdoll>0)continue;var d=Math.hypot(ai.mesh.position.x-player.position.x,ai.mesh.position.z-player.position.z);if(d<cd){cd=d;cl=ai;}}
-    if(cl){if(cl.carrying){if(cl.targetEgg){cl.targetEgg.hasEgg=true;cl.targetEgg.mesh.visible=true;cl.targetEgg.meshTop.visible=true;}if(cl.targetBiome&&cl.targetBiome.guardian){cl.targetBiome.guardian.state='return';cl.targetBiome.guardian.targetAi=null;}cl.carrying=null;cl.carryingEgg.visible=false;cl.state=cl.behavior;cl.targetEgg=null;cl.targetBiome=null;}applyRagdoll(cl,player.position.x,player.position.z,false,26);burst(cl.mesh.position.clone().setY(2),0xffd93d,20);showMsg('🏏 ตี '+cl.name+'!','#6bcB77');screenShake=.3;return;}
+    if(cl){if(cl.carrying){if(cl.targetEgg){cl.targetEgg.hasEgg=true;cl.targetEgg.mesh.visible=true;cl.targetEgg.meshTop.visible=true;}cl.carrying=null;cl.carryingEgg.visible=false;cl.state=cl.behavior;cl.targetEgg=null;cl.targetBiome=null;}applyRagdoll(cl,player.position.x,player.position.z,false,26);burst(cl.mesh.position.clone().setY(2),0xffd93d,20);showMsg('🏏 ตี '+cl.name,'#6bcB77');screenShake=.3;return;}
   }
   if(playerState.carrying&&playerState.carrying.zone){
     var g=playerState.carrying.zone.guardian;
     if(g.state==='chase_player'){
       var gd=Math.hypot(g.mesh.position.x-player.position.x,g.mesh.position.z-player.position.z);
-      if(gd<8){g.state='stunned';g.stunTimer=3;burst(g.mesh.position.clone().setY(3),0xffd93d,20);showMsg('🏏 ตี Guardian! สตัน 3 วิ','#ffd93d');}
+      if(gd<8){g.state='stunned';g.stunTimer=3;burst(g.mesh.position.clone().setY(3),0xffd93d,20);showMsg('🏏 ตี Guardian!','#ffd93d');}
     }
   }
 }
 $('btnBat').addEventListener('touchstart',e=>{e.preventDefault();useBat();},{passive:false});
 $('btnBat').addEventListener('click',useBat);
 
-/* ============ TREADMILL ============ */
+/* ==================== TREADMILL ==================== */
 var FEED_EMOJIS=['🐔','🦢','🦂','🐯','❄️','🔥','🐋','🦖','🐉','🦊','🦍','👼','💎','🌟','🍀'];
 var treadmillSpeedBonus=0;
 function renderFeed(){var c=$('feedContainer');if(c.children.length>0)return;for(var i=0;i<10;i++){var card=document.createElement('div');card.className='feed-card';var e=FEED_EMOJIS[Math.floor(Math.random()*FEED_EMOJIS.length)];card.innerHTML='<div class="emoji">'+e+'</div><div style="font-weight:bold">Video '+(i+1)+'</div>';var h1=Math.random()*360,h2=Math.random()*360;card.style.background='linear-gradient(135deg, hsl('+h1+',70%,55%), hsl('+h2+',70%,45%))';card.addEventListener('click',function(){if(this.classList.contains('liked'))return;this.classList.add('liked');treadmillSpeedBonus+=2;});c.appendChild(card);}}
@@ -922,7 +1385,7 @@ function updateTreadmill(dt){
   if(on&&roundState==='playing'){var tm=TREADMILLS[save.treadmillLevel-1];save.speed+=tm.speedPerSec*dt*(1+treadmillSpeedBonus*.05);}
 }
 
-/* ============ HATCH ============ */
+/* ==================== HATCH ==================== */
 function rollMutation(){var r=Math.random(),a=0;for(var i=0;i<MUTATIONS.length;i++){a+=MUTATIONS[i].chance;if(r<=a)return MUTATIONS[i];}return MUTATIONS[0];}
 function hatchEgg(){
   if(!playerState.carrying)return;
@@ -934,22 +1397,22 @@ function hatchEgg(){
   var col=mut.color||pet.color||0xffffff;
   var label=mut.label?mut.label+' '+pet.name:pet.name;
   showMsg('🎉 ฟักได้ '+label+'! (+'+formatNumber(income)+'/วิ)','#'+(col>>>0).toString(16).padStart(6,'0'));
-  pushEvent('🥚 ฟัก '+label,'#6bcB77');
+  pushEvent('🎉 ฟัก '+label,'#6bcB77');
   if(c.eggRef)c.eggRef.respawnTimer=20;
   if(c.zone&&c.zone.guardian){c.zone.guardian.state='return';c.zone.guardian.targetAi=null;}
   playerState.carrying=null;carriedEgg.visible=false;
   writeSave();
+  if(mp.isHost)broadcast({t:'hatched',id:'HOST',name:save.playerName,petName:pet.name});
 }
 
-/* ============ ROUND SYSTEM (host only) ============ */
+/* ==================== ROUND ==================== */
 function endRound(){
   roundState='waiting';waitTimer=WAIT_TIME;lastCountShown=-1;showBigCount(5);
   if(playerState.carrying){var c=playerState.carrying;if(c.eggRef){c.eggRef.hasEgg=true;c.eggRef.mesh.visible=true;c.eggRef.meshTop.visible=true;}if(c.zone&&c.zone.guardian)c.zone.guardian.state='return';playerState.carrying=null;carriedEgg.visible=false;}
-  for(var pid in mp.players){var p=mp.players[pid];if(p.carrying){/* nothing */}}
   playerState.ragdoll=0;player.rotation.set(0,0,0);player.position.y=0;
   player.position.set(BASE_POS.x,0,BASE_POS.z+10);playerState.facing=0;
   scene.background.setHex(0x0a0a2a);scene.fog.color.setHex(0x0a0a2a);scene.fog.near=15;scene.fog.far=75;
-  for(var m=0;m<biomeZones.length;m++){var g=biomeZones[m].guardian;g.state='idle';g.targetAi=null;g.mesh.position.set(g.homeX,0,g.homeZ);g.mesh.rotation.set(0,0,0);g.warnRing.material.opacity=0;}
+  for(var m=0;m<biomeZones.length;m++){var g=biomeZones[m].guardian;g.state='idle';g.targetAi=null;g.targetPlayerId=null;g.mesh.position.set(g.homeX,0,g.homeZ);g.mesh.rotation.set(0,0,0);g.warnRing.material.opacity=0;}
   showMsg('⏳ รออีก 5 วินาที...','#ffd93d');
 }
 function startRound(){
@@ -960,7 +1423,7 @@ function startRound(){
   showMsg('🎉 เริ่มรอบใหม่!','#6bcB77');
 }
 
-/* ============ GUARDIAN ============ */
+/* ==================== GUARDIAN ==================== */
 function updateGuardians(dt){
   if(roundState!=='playing')return;
   for(var i=0;i<biomeZones.length;i++){
@@ -970,7 +1433,7 @@ function updateGuardians(dt){
     else g.warnRing.material.opacity*=.85;
     if(g.state==='stunned'){g.stunTimer-=dt;gm.rotation.z=Math.sin(performance.now()*.02)*.3;if(g.stunTimer<=0){g.state='return';gm.rotation.z=0;}continue;}
     gm.rotation.z=0;
-    if(g.state==='return'){var rdx=g.homeX-gm.position.x,rdz=g.homeZ-gm.position.z,rd=Math.hypot(rdx,rdz);if(rd>2){gm.position.x+=rdx/rd*12*dt;gm.position.z+=rdz/rd*12*dt;gm.rotation.y=Math.atan2(rdx,rdz);}else{g.state='idle';g.targetAi=null;}continue;}
+    if(g.state==='return'){var rdx=g.homeX-gm.position.x,rdz=g.homeZ-gm.position.z,rd=Math.hypot(rdx,rdz);if(rd>2){gm.position.x+=rdx/rd*12*dt;gm.position.z+=rdz/rd*12*dt;gm.rotation.y=Math.atan2(rdx,rdz);}else{g.state='idle';g.targetAi=null;g.targetPlayerId=null;}continue;}
     if(g.state==='chase_player'){
       if(!playerState.carrying||playerState.carrying.zone!==bz){g.state='return';continue;}
       if(playerState.ragdoll<=0){
@@ -988,7 +1451,7 @@ function updateGuardians(dt){
       var pS2=8+Math.log10(1+save.speed)*4,tf2=.72+.55*Math.min(1,bz.biome.speedReq/2e10),gs2=pS2*tf2;
       var dx2=tp.targetX-gm.position.x,dz2=tp.targetZ-gm.position.z,d2=Math.hypot(dx2,dz2);
       if(d2>1.5){gm.position.x+=dx2/d2*gs2*dt;gm.position.z+=dz2/d2*gs2*dt;gm.rotation.y=Math.atan2(dx2,dz2);}
-      if(d2<4){/* knockback for remote */tp.ragdoll=1.8;tp.ragVX=dx2/d2*20;tp.ragVY=9;tp.ragVZ=dz2/d2*20;tp.ragSpinX=(Math.random()-.5)*15;tp.ragSpinZ=(Math.random()-.5)*15;g.state='return';g.targetPlayerId=null;continue;}
+      if(d2<4){tp.ragdoll=1.8;tp.ragVX=dx2/d2*20;tp.ragVY=9;tp.ragVZ=dz2/d2*20;tp.ragSpinX=(Math.random()-.5)*15;tp.ragSpinZ=(Math.random()-.5)*15;g.state='return';g.targetPlayerId=null;continue;}
       continue;
     }
     if(g.state==='chase_ai'&&g.targetAi){
@@ -1002,7 +1465,6 @@ function updateGuardians(dt){
       }
       continue;
     }
-    // idle
     g.patrolAngle+=.5*dt;
     var tx=g.homeX+Math.cos(g.patrolAngle)*g.patrolRadius,tz=g.homeZ+Math.sin(g.patrolAngle)*g.patrolRadius;
     gm.position.x+=(tx-gm.position.x)*Math.min(1,dt*2);gm.position.z+=(tz-gm.position.z)*Math.min(1,dt*2);
@@ -1011,7 +1473,7 @@ function updateGuardians(dt){
   }
 }
 
-/* ============ AI (single only) ============ */
+/* ==================== AI (single only) ==================== */
 function aiSpeed(ai){return 8+Math.log10(1+ai.speedStat)*4;}
 function updateAI(ai,dt){
   if(roundState!=='playing')return;
@@ -1033,9 +1495,7 @@ function updateAI(ai,dt){
         for(var i=0;i<biomeZones.length;i++)for(var j=0;j<biomeZones[i].eggs.length;j++){
           var e=biomeZones[i].eggs[j];if(!e.hasEgg)continue;
           var ed=Math.hypot(e.x-ai.mesh.position.x,e.z-ai.mesh.position.z);
-          var sc=-ed+Math.random()*40;
-          if(ai.speedStat*20>=e.biome.speedReq)sc+=200;else sc-=400;
-          if(ai.recentEggs[e.id])sc-=300;
+          var sc=-ed+Math.random()*40;if(ai.speedStat*20>=e.biome.speedReq)sc+=200;else sc-=400;if(ai.recentEggs[e.id])sc-=300;
           if(sc>bs){bs=sc;best=e;bz=biomeZones[i];}
         }
         ai.targetEgg=best;ai.targetBiome=bz;
@@ -1043,13 +1503,7 @@ function updateAI(ai,dt){
       if(ai.targetEgg&&ai.targetBiome){
         var tdx=ai.targetEgg.x-ai.mesh.position.x,tdz=ai.targetEgg.z-ai.mesh.position.z,td=Math.hypot(tdx,tdz),spd=aiSpeed(ai);
         if(td>.8){ai.mesh.position.x+=tdx/td*spd*dt;ai.mesh.position.z+=tdz/td*spd*dt;ai.facing=Math.atan2(tdx,tdz);}
-        if(td<3&&ai.targetEgg.hasEgg){
-          ai.recentEggs[ai.targetEgg.id]=12;ai.targetEgg.hasEgg=false;ai.targetEgg.mesh.visible=false;ai.targetEgg.meshTop.visible=false;
-          var g2=ai.targetBiome.guardian;g2.state='chase_ai';g2.targetAi=ai;
-          var pool=PET_DATA[ai.targetBiome.biome.id];ai.carrying=pool[Math.floor(Math.random()*pool.length)];
-          ai.carryingEgg.material.color.setHex(ai.carrying.color||0xffffff);ai.carryingEgg.material.emissive.setHex(ai.carrying.color||0x222222);ai.carryingEgg.visible=true;
-          ai.state='return';
-        }
+        if(td<3&&ai.targetEgg.hasEgg){ai.recentEggs[ai.targetEgg.id]=12;ai.targetEgg.hasEgg=false;ai.targetEgg.mesh.visible=false;ai.targetEgg.meshTop.visible=false;var g2=ai.targetBiome.guardian;g2.state='chase_ai';g2.targetAi=ai;var pool=PET_DATA[ai.targetBiome.biome.id];ai.carrying=pool[Math.floor(Math.random()*pool.length)];ai.carryingEgg.material.color.setHex(ai.carrying.color||0xffffff);ai.carryingEgg.material.emissive.setHex(ai.carrying.color||0x222222);ai.carryingEgg.visible=true;ai.state='return';}
       }
     } else {
       var bdx=BASE_POS.x-ai.mesh.position.x,bdz=BASE_POS.z-ai.mesh.position.z,bd=Math.hypot(bdx,bdz),spd2=aiSpeed(ai);
@@ -1068,13 +1522,12 @@ function updateAI(ai,dt){
   else{ai.mesh.userData.armL.rotation.x*=.9;ai.mesh.userData.armR.rotation.x*=.9;ai.mesh.userData.legL.rotation.x*=.9;ai.mesh.userData.legR.rotation.x*=.9;}
 }
 
-/* ============ REMOTE PLAYER RENDER ============ */
+/* ==================== REMOTE PLAYERS ==================== */
 function updateRemotePlayers(dt){
-  var camPos=camera.position;
   for(var pid in mp.players){
     var p=mp.players[pid];
+    if(!p.mesh)continue;
     if(p.ragdoll>0){
-      // apply ragdoll movement locally
       p.ragdoll-=dt;p.ragVY-=28*dt;
       p.mesh.position.x+=p.ragVX*dt;p.mesh.position.z+=p.ragVZ*dt;p.mesh.position.y+=p.ragVY*dt;
       if(p.mesh.position.y<=0){p.mesh.position.y=0;if(Math.abs(p.ragVY)>3){p.ragVY=-p.ragVY*.35;p.ragVX*=.6;p.ragVZ*=.6;}else p.ragVY=0;}
@@ -1083,46 +1536,51 @@ function updateRemotePlayers(dt){
       p.ragSpinX*=Math.pow(.5,dt);p.ragSpinZ*=Math.pow(.5,dt);
       p.targetX=p.mesh.position.x;p.targetZ=p.mesh.position.z;
     } else {
-      // interpolate toward target
       p.mesh.position.x+=(p.targetX-p.mesh.position.x)*Math.min(1,dt*15);
       p.mesh.position.z+=(p.targetZ-p.mesh.position.z)*Math.min(1,dt*15);
-      // face direction
       var diff=p.targetF-p.facing;
       while(diff>Math.PI)diff-=Math.PI*2;
       while(diff<-Math.PI)diff+=Math.PI*2;
       p.facing+=diff*Math.min(1,dt*12);
       p.mesh.rotation.y=p.facing;
     }
-    // carrying egg visible
     p.carryingEgg.visible=!!p.carrying;
-    // animation
-    var dist=Math.hypot(p.targetX-p.mesh.position.x,p.targetZ-p.mesh.position.z);
-    if(dist>.1){p.walkCycle+=dt*8;var sw=Math.sin(p.walkCycle)*.5;p.mesh.userData.armL.rotation.x=sw;p.mesh.userData.armR.rotation.x=-sw;p.mesh.userData.legL.rotation.x=-sw;p.mesh.userData.legR.rotation.x=sw;}
-    else{p.mesh.userData.armL.rotation.x*=.85;p.mesh.userData.armR.rotation.x*=.85;p.mesh.userData.legL.rotation.x*=.85;p.mesh.userData.legR.rotation.x*=.85;}
+    var mv=Math.hypot(p.targetX-p.mesh.position.x,p.targetZ-p.mesh.position.z);
+    if(mv>.15){
+      p.walkCycle+=dt*8;
+      var sw=Math.sin(p.walkCycle)*.5;
+      p.mesh.userData.armL.rotation.x=sw;p.mesh.userData.armR.rotation.x=-sw;
+      p.mesh.userData.legL.rotation.x=-sw;p.mesh.userData.legR.rotation.x=sw;
+    } else {
+      p.mesh.userData.armL.rotation.x*=.85;p.mesh.userData.armR.rotation.x*=.85;
+      p.mesh.userData.legL.rotation.x*=.85;p.mesh.userData.legR.rotation.x*=.85;
+    }
     // name tag projection
     var tg=document.getElementById('nt-'+pid);
     if(tg){
-      var v=new THREE.Vector3(p.mesh.position.x,p.mesh.position.y+6,p.mesh.position.z);
+      var v=new THREE.Vector3(p.mesh.position.x,p.mesh.position.y+8,p.mesh.position.z);
       var proj=v.clone().project(camera);
-      if(proj.z<1){
-        var x=(proj.x*.5+.5)*window.innerWidth;
-        var y=(-proj.y*.5+.5)*window.innerHeight;
-        tg.style.left=x+'px';tg.style.top=y+'px';tg.style.display='block';
+      if(proj.z<1&&proj.z>-1){
+        var sx=(proj.x*.5+.5)*window.innerWidth;
+        var sy=(-proj.y*.5+.5)*window.innerHeight;
+        // check if offscreen
+        if(sx>20&&sx<window.innerWidth-20&&sy>20&&sy<window.innerHeight-20){
+          tg.style.left=sx+'px';tg.style.top=sy+'px';tg.style.display='block';
+        } else tg.style.display='none';
       } else tg.style.display='none';
     }
   }
 }
 
-/* ============ DIR / BIOME ============ */
+/* ==================== DIR / BIOME ==================== */
 function updateDirIndicator(){var el=$('dirIndicator');if(!playerState.carrying){el.style.display='none';return;}el.style.display='flex';var dx=BASE_POS.x-player.position.x,dz=BASE_POS.z-player.position.z;var ang=Math.atan2(dx,dz);el.querySelector('.dir-arrow').style.transform='rotate('+(ang*180/Math.PI)+'deg)';}
 function checkBiome(){var inB=null;for(var i=0;i<BIOMES.length;i++){var b=BIOMES[i];if(Math.hypot(player.position.x-b.x,player.position.z-b.z)<b.r){inB=b;break;}}if(inB&&playerState.lastBiomeId!==inB.id){playerState.lastBiomeId=inB.id;showBiomePop(inB);}else if(!inB)playerState.lastBiomeId=null;}
 
-/* ============ MAIN UPDATE ============ */
+/* ==================== MAIN UPDATE ==================== */
 function update(dt){
   if(roundState==='playing'){roundTimer-=dt;if(roundTimer<=0&&(mp.isHost||mp.mode==='single'))endRound();}
   else if(roundState==='waiting'){
-    waitTimer-=dt;
-    var ns=Math.ceil(waitTimer);
+    waitTimer-=dt;var ns=Math.ceil(waitTimer);
     if(ns>=1&&ns!==lastCountShown){lastCountShown=ns;showBigCount(ns);}
     if(waitTimer<=0&&(mp.isHost||mp.mode==='single'))startRound();
   }
@@ -1136,6 +1594,7 @@ function update(dt){
     updateParticlesAndIncome(dt);updateHUD();updateRemotePlayers(dt);
     if(biomePopTimer>0){biomePopTimer-=dt;if(biomePopTimer<=0)biomePopEl.classList.remove('show');}
     if(mp.isHost)hostBroadcastWorld();
+    else if(mp.mode==='client')clientSendState();
     return;
   }
 
@@ -1150,6 +1609,7 @@ function update(dt){
     camera.lookAt(player.position.clone().add(new THREE.Vector3(0,2,0)));
     updateParticlesAndIncome(dt);updateHUD();updateDirIndicator();updateRemotePlayers(dt);
     if(mp.isHost)hostBroadcastWorld();
+    else if(mp.mode==='client')clientSendState();
     return;
   }
 
@@ -1181,7 +1641,6 @@ function update(dt){
   if(mp.mode==='single'){updateGuardians(dt);for(var a_j=0;a_j<ais.length;a_j++)updateAI(ais[a_j],dt);}
   else if(mp.isHost){updateGuardians(dt);}
   checkBiome();
-  // egg respawn (host only)
   if(mp.isHost||mp.mode==='single'){
     for(var bz_j=0;bz_j<biomeZones.length;bz_j++){var bz2=biomeZones[bz_j];for(var e_j=0;e_j<bz2.eggs.length;e_j++){var e2=bz2.eggs[e_j];if(!e2.hasEgg&&e2.respawnTimer>0){e2.respawnTimer-=dt;if(e2.respawnTimer<=0){e2.hasEgg=true;e2.mesh.visible=true;e2.meshTop.visible=true;}}if(e2.hasEgg)e2.mesh.rotation.y+=dt*.6;}}
   }
@@ -1195,10 +1654,8 @@ function update(dt){
   camera.position.lerp(camT,1-Math.pow(.001,dt));
   if(screenShake>0){camera.position.x+=(Math.random()-.5)*screenShake;camera.position.y+=(Math.random()-.5)*screenShake*.5;}
   camera.lookAt(player.position.clone().add(new THREE.Vector3(0,2,0)));
-  updateHUD();updateDirIndicator();
-  updateRemotePlayers(dt);
+  updateHUD();updateDirIndicator();updateRemotePlayers(dt);
   if(biomePopTimer>0){biomePopTimer-=dt;if(biomePopTimer<=0)biomePopEl.classList.remove('show');}
-  // MP send/broadcast
   if(mp.isHost)hostBroadcastWorld();
   else if(mp.mode==='client')clientSendState();
 }
@@ -1211,17 +1668,17 @@ function updateParticlesAndIncome(dt){
   if(msgTimer>0){msgTimer-=dt;if(msgTimer<=0)msgEl.classList.remove('show');}
 }
 
-/* ============ LEADERBOARD ============ */
+/* ==================== LEADERBOARD ==================== */
 function updateBoard(){
-  var list=[{name:save.playerName+' (คุณ)',money:Math.floor(save.money),me:true}];
-  for(var pid in mp.players)list.push({name:mp.players[pid].name,money:0,me:false});
+  var list=[{name:save.playerName+' (คุณ)',money:Math.floor(save.money),me:true,live:true}];
+  for(var pid in mp.players)list.push({name:mp.players[pid].name,money:0,me:false,live:true});
   list.sort(function(a,b){return b.money-a.money;});
-  var h='';for(var j=0;j<list.length;j++){var p=list[j];h+='<div class="lb-row '+(p.me?'lb-me':'')+'"><span>'+(j+1)+'. '+p.name+'</span><span>'+formatNumber(p.money)+'</span></div>';}
+  var h='';for(var j=0;j<list.length;j++){var p=list[j];h+='<div class="lb-row '+(p.me?'lb-me':(p.live?'lb-live':''))+'"><span>'+(j+1)+'. '+p.name+'</span><span>'+formatNumber(p.money)+'</span></div>';}
   $('lbList').innerHTML=h;
 }
 setInterval(updateBoard,1000);
 
-/* ============ INDEX PANEL ============ */
+/* ==================== INDEX ==================== */
 function buildIndex(){
   var mutAvg=0;for(var i=0;i<MUTATIONS.length;i++)mutAvg+=MUTATIONS[i].chance*MUTATIONS[i].mult;
   var h='<div class="upgrade-row" style="flex-direction:column;align-items:stretch;background:rgba(255,217,61,.1);"><div class="name" style="color:#ffd93d;margin-bottom:4px;">🎲 Mutation</div>';
@@ -1236,7 +1693,7 @@ function buildIndex(){
   $('indexList').innerHTML=h;
 }
 
-/* ============ PANELS ============ */
+/* ==================== PANELS ==================== */
 function closeAll(){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));}
 window.closeAll=closeAll;
 $('btnMenu').addEventListener('click',function(){$('menuMoney').textContent=formatNumber(save.money)+'💰';closeAll();$('panelMenu').classList.add('show');});
@@ -1270,11 +1727,12 @@ $('menuPets').addEventListener('click',function(){
   $('panelPets').classList.add('show');
 });
 
-/* ============ LOBBY EVENTS ============ */
+/* ==================== LOBBY ==================== */
 $('btnSolo').addEventListener('click',function(){
   mp.mode='single';mp.isHost=false;
   document.getElementById('lobby').style.display='none';
-  spawnAIs();spawnBiomeZones();
+  spawnAIs();clearBiomeZones();
+  for(var i=0;i<BIOMES.length;i++)createBiomeZone(BIOMES[i]);
   startGameLoop();
 });
 $('btnHost').addEventListener('click',function(){hostGame();});
@@ -1297,35 +1755,47 @@ $('roomInput').addEventListener('keydown',function(e){if(e.key==='Enter')$('btnJ
 $('btnCopyCode').addEventListener('click',function(){navigator.clipboard.writeText(mp.roomCode).then(()=>setLobbyStatus('คัดลอกแล้ว!'),()=>{});});
 $('btnCopySmall').addEventListener('click',function(){navigator.clipboard.writeText(mp.roomCode).then(()=>showMsg('📋 คัดลอกรหัสแล้ว','#6bcB77'),()=>{});});
 $('btnStartGame').addEventListener('click',function(){
-  if(Object.keys(mp.players).length<1){setLobbyStatus('ต้องมีผู้เล่น 2+',true);return;}
-  // host starts game
+  var count=1+Object.keys(mp.players).length;
+  if(count<2){setLobbyStatus('ต้องมีผู้เล่น 2+',true);return;}
+  console.log('[HOST] Starting game with',count,'players');
   document.getElementById('lobby').style.display='none';
   document.getElementById('roomInfo').classList.add('show');
   document.getElementById('roomCodeSmall').textContent=mp.roomCode;
-  // spawn biome zones + start
-  spawnBiomeZones();
+  clearBiomeZones();
+  for(var i=0;i<BIOMES.length;i++)createBiomeZone(BIOMES[i]);
   roundState='playing';roundTimer=ROUND_TIME;
-  // broadcast start
+  // broadcast start + full state
   broadcast({t:'start',time:ROUND_TIME});
-  // send full state
-  setTimeout(()=>{broadcast(serializeWorldState());},500);
+  setTimeout(function(){broadcast(serializeWorldState());},400);
   startGameLoop();
 });
 $('btnLeaveHost').addEventListener('click',function(){if(confirm('ยกเลิกห้อง?'))location.reload();});
 
-/* ============ LOOP START ============ */
+/* ==================== CLIENT GAME START ==================== */
+function startClientGame(time){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('lobbyJoining').style.display='none';
+  document.getElementById('roomInfo').classList.add('show');
+  document.getElementById('roomCodeSmall').textContent=mp.roomCode;
+  clearBiomeZones();
+  for(var i=0;i<BIOMES.length;i++)createBiomeZone(BIOMES[i]);
+  roundState='playing';roundTimer=time||ROUND_TIME;
+  startGameLoop();
+}
+
+/* ==================== LOOP ==================== */
 var loopStarted=false;
 function startGameLoop(){
   if(loopStarted)return;loopStarted=true;
-  $('loading').remove();
+  var ld=document.getElementById('loading');if(ld)ld.remove();
   updateHUD();updateBoard();
-  showMsg('🏃 ยืนบนลู่วิ่งเพิ่ม Speed แล้วออกไปขโมยไข่!','#6bcB77');
+  showMsg('🏃 ยืนบนลู่วิ่งเพิ่ม Speed!','#6bcB77');
   requestAnimationFrame(animate);
 }
 var lastT=performance.now();
 function animate(now){
   var dt=Math.min(.05,(now-lastT)/1000);lastT=now;
-  try{update(dt);}catch(e){console.error(e);}
+  try{update(dt);}catch(e){console.error('[RUNTIME]',e);}
   renderer.render(scene,camera);
   requestAnimationFrame(animate);
 }
@@ -1334,7 +1804,6 @@ window.addEventListener('resize',onResize);
 window.addEventListener('orientationchange',()=>setTimeout(onResize,200));
 
 loadSave();
-// Loading done — show lobby
 setTimeout(function(){
   document.getElementById('loading').style.display='none';
   document.getElementById('lobby').style.display='flex';
@@ -1342,4 +1811,3 @@ setTimeout(function(){
 </script>
 </body>
 </html>
-
